@@ -1,0 +1,10 @@
+trying to add text on a new line after a line that is exactly as long as the screen
+
+012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012
+ssh -f -N -L5610:mail.songbird.com:110 -L 5525:mail.songbird.com:25 -l kent mail.songbird.com
+
+This
+This sets
+
+
+

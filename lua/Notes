@@ -1,0 +1,1 @@
+cc  -lm -ldl lua.c liblua51.a

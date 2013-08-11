@@ -1,0 +1,107 @@
+ToDo to get perl regexs:
+1) a function to count the number of characters in a buffer
+2) then, a function to "pack" a buffer to a singl physical buffer
+3) then, perl regexes on that buffer.  Need special command for
+    pcre -- meta-s? (instead of "set variable"?)
+
+scratch the pcre stuff; look at lua patterns instead.
+
+added perl regex around v 1.87
+
+recast killbuffer to be a linked list of lines.  killregion then just moves a 
+region to the killbuffer.  yank could add a linked list of lines in at the 
+current point.  kill lines unlinks a line from the active buffer, and links 
+it into the killbuffer.  region structure probably becomes a 
+(first line/offset, last line/offset, number of chars) structure.  the 
+tricky part is at the line boundaries, because the insert may be into the 
+interior of an existing line.
+
+A quick fix was to pre-expand the kill buffer size if the size of the region 
+to be killed was large -- massive improvement. (20060329)
+
+Also may want indefinitely large number of kill buffers.  (in lua, a variable
+that is a region)
+================================================================
+
+A buffer that displays as
+
+abc
+def
+ghi
+
+with the cursor on the "e"
+looks like this:
+
+
+                  +-----------------------------+
+                  | +-------------------------+ |
+                  | |                         | |
+                  | v                         | |
+            	+-------------------+         | |
+                |abc            L_NL|         | |
+            	+-------------------+         | |
+                  ^ |                         | |
+                  | v                         | |
+            	+-------------------+         | |
+curwp->dotp---->|def            L_NL|         | |
+            	+-------------------+         | |
+curwp->doto=1     ^ |                         | |
+                  | v                         | |
+            	+-------------------+         | |
+                |ghi            L_NL|         | |
+            	+-------------------+         | |
+                  ^ |                         | |
+                  | v                         | |
+            	+-------------------+         | |
+curbp->linep--->|*EOB*              |         | |
+            	+-------------------+         | |
+                  ^ |                         | |
+                  | +-------------------------+ |
+                  +-----------------------------+
+
+curbp->dotp is not meaningful when the buffer is displayed
+
+
+================================================================
+
+version 1.73: rewrote the "writeout" function to use only system calls, not
+the standard library.  Seems significantly faster -- 66000 "line" iso file
+(250MB) is read almost instantaneously, change a character, write it back. 
+Three runs:
+
+me 1.72:
+real    0m4.728s    0m3.165s    0m3.719s
+user    0m0.788s    0m0.816s    0m0.792s
+sys     0m0.160s    0m0.128s    0m0.168s
+
+
+me 1.73:
+real    0m2.909s    0m2.914s    0m2.547s
+user    0m0.096s    0m0.092s    0m0.124s
+sys     0m0.176s    0m0.144s    0m0.168s
+
+================================================================
+Todo: a "update" command that updates a file in place (keeping the same 
+inode) rather than creating a new inode.  
+
+the basic file handling model currently is that all editing operations take
+place on buffers; buffers are filled by the "readin" function, which opens a
+file, reads it in to the buffer, then closes the file.  whenever a file is 
+opened, its status is checked, and preserved in an array of struct stat 
+named "file_data".  The key is the inode number (should also use filesystem 
+id somehow).  When a file is written, if the write will overwrite an old 
+file, the permissions of the old file should be matched.
+
+the file handling needs to be rewritten from scratch -- the old design was 
+designed to implement an abstraction over many different platforms -- unix, 
+dos, windows, vms, etc -- but currently I only worry about the unix 
+interface, and the abstraction layer gets in the way.  in particular, 
+"fileio.c" should be folded into "file.c", and then the whole thing gone 
+over in detail a couple of times.  all should be done in terms of open, 
+close, read, write, instead of fopen etc.  ie, if possible, get rid of io 
+library.  (done)
+
+Need a better autosave/recovery mechanism -- perhaps the ",," files should 
+have a tiny structure attached at the front, and the program should view 
+these as potentially recoverable on start up -- ask "do you want to 
+recover...". 

@@ -1,0 +1,42 @@
+diff --git a/Makefile b/Makefile
+index eabf056..3bb9891 100644
+--- a/Makefile
++++ b/Makefile
+@@ -21,7 +21,7 @@ CFLAGS= -g
+ #for mac mini
+ #LIBS= -ltermcap -lc -lncurses
+ #
+-LIBS= -lc -lncurses -lpcre
++LIBS= -lc -ltermcap -lncurses -lpcre
+ #LIBS= -lc -lncurses
+ #
+ #for cray 
+diff --git a/main.c b/main.c
+index 0c0b1bf..60171b9 100644
+--- a/main.c
++++ b/main.c
+@@ -151,8 +151,9 @@ Version History:
+         file, but kept the old recorded stat data
+ 1.87-- bug fix -- do_read segfaulted because bp wasn't passed in
+ 1.88-- ffget_stat call to update file state after write -- only encrypted case
++1.89-- added meta-? as help
+ */
+-#define VERSION_NAME "ME1.88"
++#define VERSION_NAME "ME1.89"
+ 
+ #include <stdio.h>
+ #include <stdlib.h>
+@@ -395,6 +396,7 @@ META|'s',       setvar,      "setvar","set value of variable",
+ META|'u',       upperword,   "upperword","uppercase word",
+ META|'v',       set_vi,      "set_vi","set vi(ew) mode",
+ META|'w',       copyregion,  "copyregion","copy region",
++META|'?',       help,        "help","explain following key",
+ META|0x7F,      delbword,    "delbword","delete backward one word",
+ 0x7F,           backdel,     "backdel","delete backward one character",
+ 0,              0, 0, 0
+diff --git a/me b/me
+index 1537bfd..2ca0b2a 100755
+Binary files a/me and b/me differ
+diff --git a/me.tar b/me.tar
+index 3c808a4..62f0a84 100644
+Binary files a/me.tar and b/me.tar differ
