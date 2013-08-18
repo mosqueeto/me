@@ -1,1 +1,6 @@
 add a more complete regular exp interface -- ie, support "s/../../g"
+
+enhanced esc-q (wrap paragraph): if beginning of paragraph begins w/ 1-4 
+spaces, indent the first line by 4 spaces (actually, by tab size); 5-8 
+spaces, first line by two tab stops and rest of lines by one tab stop, and 
+so on.
