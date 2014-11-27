@@ -4,6 +4,10 @@ ToDo to get perl regexs:
 3) then, perl regexes on that buffer.  Need special command for
     pcre -- meta-s? (instead of "set variable"?)
 
+building w/ pcre requires that the libraries be available.  On ubuntu:
+apt-get install libpcre3 libpcre3-dev
+apt-get install ncurses-dev
+
 scratch the pcre stuff; look at lua patterns instead.
 
 added perl regex around v 1.87
