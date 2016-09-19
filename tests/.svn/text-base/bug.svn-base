@@ -1,2 +1,0 @@
-the file news.html cause a segfault if you open it in a 158x48 window, 
-and try to reformat the first news item
