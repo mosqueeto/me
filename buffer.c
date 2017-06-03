@@ -156,6 +156,48 @@ listbuffers(f, n)
     }
     return (TRUE);
 }
+/*
+ * show the help buffer
+ * make sure at least 1 window is displaying the
+ * help buffer, splitting the screen if this
+ * is what it takes. Lastly, repaint all of
+ * the windows that are displaying the
+ * list. Bound to "C-X C-B".
+ */
+helpkeys(f, n)
+{
+    register WINDOW *wp;
+    register BUFFER *bp;
+    register int    s;
+
+    (void)defaultargs(f,n);
+    if( helpbp->nwnd == 0 ){        /* Not on screen yet.   */
+        if( (wp=wpopup()) == NULL )
+            return (FALSE);
+        bp = wp->bufp;
+        if( --bp->nwnd == 0 ){
+            bp->dotp  = wp->dotp;
+            bp->doto  = wp->doto;
+            bp->markp = wp->markp;
+            bp->marko = wp->marko;
+        }
+        wp->bufp  = helpbp;
+        ++helpbp->nwnd;
+    }
+    wp = wheadp;
+    while( wp != NULL ){
+        if( wp->bufp == helpbp ){
+            wp->topp = lforw(helpbp->lines);
+            wp->dotp  = lforw(helpbp->lines);
+            wp->doto  = 0;
+            wp->markp = NULL;
+            wp->marko = 0;
+            wp->flag |= WFMODE;
+        }
+        wp = wp->wndp;
+    }
+    return (TRUE);
+}
 
 /*
  * This routine rebuilds the
@@ -182,8 +224,8 @@ makelist()
     if( (s=bclear(blistp)) != TRUE )    /* Blow old text away   */
         return (s);
     strcpy((char *)blistp->fname, "");
-    if( addline("C   Size Buffer           File") == FALSE
-    ||  addline("-   ---- ------           ----") == FALSE )
+    if( addline(blistp,"C   Size Buffer           File") == FALSE
+    ||  addline(blistp,"-   ---- ------           ----") == FALSE )
         return (FALSE);
     bp = bheadp;                /* For all buffers  */
     while( bp != NULL ){
@@ -221,7 +263,7 @@ makelist()
             }
         }
         *cp1 = 0;           /* Add to the buffer.   */
-        if( addline(line) == FALSE )
+        if( addline(blistp,line) == FALSE )
             return (FALSE);
         bp = bp->bufp;
     }
@@ -245,13 +287,15 @@ int    num;
 }
 
 /*
+ * add a line to a buffer
  * The argument "text" points to
  * a string. Append this line to the
  * buffer list buffer. Handcraft the EOL
  * on the end. Return TRUE if it worked and
  * FALSE if you ran out of room.
  */
-addline(text)
+addline(bp,text)
+BUFFER  *bp;
 BYTE    *text;
 {
     register LINE   *lp;
@@ -259,13 +303,14 @@ BYTE    *text;
     register int    ntext;
 
     ntext = strlen((char *)text);
-    if( (lp=ladd(blistp->lines,ntext)) == NULL )
+    if( (lp=ladd(bp->lines,ntext)) == NULL )
         return (FALSE);
     for( i=0; i<ntext; ++i )
         lputc(lp, i, text[i]);
     lp->used = ntext;
-    if( blistp->dotp == blistp->lines ) /* If "." is at the end */
-        blistp->dotp = lp;      /* move it to new line  */
+    if( bp->dotp == bp->lines ) /* If "." is at the end */
+        bp->dotp = lp;      /* move it to new line  */
+
     return (TRUE);
 }
 

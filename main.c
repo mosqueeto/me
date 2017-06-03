@@ -157,8 +157,9 @@ Version History:
 1.92-- fixed bug -- insert file failed if inserting into newly created
         file.  changed insert logic to leave at start of insert.  added
         L_HEAD flag for the dummy line, not using it though
+1.93-- expanded help system.
 */
-#define VERSION_NAME "ME1.92"
+#define VERSION_NAME "ME1.93"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -232,6 +233,7 @@ extern  int gotoeob();      // Move to end of buffer
 extern  int gotoeol();      // Move to end of line
 extern  int gotoline();     // Go to a line number
 extern	int help();         // print reminder
+extern  int helpkeys();     // complete list of key bindings
 extern  int indent();       // Insert CR-LF, then indent
 extern  int insfile();      // Insert file at current line
 extern  int key_pageup();   // pageup key
@@ -307,103 +309,192 @@ extern void resize();
   location of the control-X commands.
 */
 KEYTAB  keytab[] = {
-'.',            dot,       "dot","either . macro or insert a .",
-CNTRL|'@',      setmark,   "setmark","setmark",
-CNTRL|'A',      gotobol,   "gotobol",	"goto beginning of line",
-CNTRL|'B',      backchar,  "backchar","back one character",
-CNTRL|'C',      backpage,  "backpage","back one page",
-CNTRL|'D',      forwdel,   "forwdel","delete forward one character",
-CNTRL|'E',      gotoeol,   "gotoeol","goto end of line",
-CNTRL|'F',      forwchar,  "forwchar","forward one character",
-CNTRL|'G',      ctrlg,     "abort","abort",
-CNTRL|'H',      backdel,   "backdel","delete backward one character",
-CNTRL|'I',      tab,       "tab","tab",
-CNTRL|'J',      indent,    "indent","indent",
-//CNTRL|'J',      
-CNTRL|'K',      killfw,    "killfw","kill line",
-CNTRL|'L',      refresh,   "refresh","refresh screen",
+'.',            dot,       "dot",
+    ".       either . macro or insert a .",
+CNTRL|'@',      setmark,   "setmark",
+    "^@      setmark",
+CNTRL|'A',      gotobol,   "gotobol",
+    "^A      goto beginning of line",
+CNTRL|'B',      backchar,  "backchar",
+    "^B      back character",
+CNTRL|'C',      backpage,  "backpage",
+    "^C      back page",
+CNTRL|'D',      forwdel,   "forwdel",
+    "^D      forward delete character",
+CNTRL|'E',      gotoeol,   "gotoeol",
+    "^E      goto end of line",
+CNTRL|'F',      forwchar,  "forwchar",
+    "^F      forward character",
+CNTRL|'G',      ctrlg,     "abort",
+    "^G      abort",
+CNTRL|'H',      backdel,   "backdel",
+    "^H      backward delete character",
+CNTRL|'I',      tab,       "tab",
+    "^I      insert tab",
+CNTRL|'J',      indent,    "indent",
+    "^J      indent",
+CNTRL|'K',      killfw,    "killfw",
+    "^K      kill line",
+CNTRL|'L',      refresh,   "refresh",
+    "^L      refresh screen",
 
 // available for "match"??
-CNTRL|'M',      newline,   "newline","newline",
 
-CNTRL|'N',      forwline,  "forwline","forward one line",
+CNTRL|'M',      newline,   "newline",
+    "^M      insert newline",
+CNTRL|'N',      forwline,  "forwline",
+    "^N      forward line",
 
 // maybe this should be "options"??
 //CNTRL|'O',      openline,  "openline","open a following line",
-CNTRL|'O',      indent,    "indent","indent",
 
-CNTRL|'P',      backline,  "backline","backward one line",
-CNTRL|'Q',      quote,     "quote","quote following character",
-CNTRL|'R',      backsearch,"backsearch","reverse search",
-CNTRL|'S',      forwsearch,"forwsearch","forward search",
-CNTRL|'T',      twiddle,   "twiddle","twiddle characters at point",
-CNTRL|'V',      forwpage,  "fowrpage","forward one page",
-CNTRL|'Y',      yank,      "yank","yank text back from kill buffer",
-CNTRL|'Z',      spawncli,  "spawncli","spawn shell",
-CTLX|CNTRL|'B', listbuffers, "listbuffers","list buffers",
-CTLX|CNTRL|'C', quit,      "quit","quit",
-CTLX|CNTRL|'F', fileread,  "fileread","read file",
-CTLX|CNTRL|'I', insfile,   "insfile","insert file",
-CTLX|CNTRL|'L', lowerregion, "lowerregion","lowercase marked region",
-CTLX|CNTRL|'M', deblank,   "delblank","delete blank lines",
-CTLX|CNTRL|'O', deblank,   "delblank","delete blank lines",
-CTLX|CNTRL|'N', mvdnwind,  "mvdnwind","move window down one line",
-CTLX|CNTRL|'P', mvupwind,  "mvupwind","move window up one line",
-CTLX|CNTRL|'R', filename,  "filename","change file name",
-CTLX|CNTRL|'S', filesave,  "filesave","save file",
-CTLX|CNTRL|'U', upperregion, "upperregion","uppercase marked region",
-CTLX|CNTRL|'V', filevisit, "filevisit","visit file",
-CTLX|CNTRL|'W', killregion, "killregion","kill region",
-CTLX|CNTRL|'X', swapmark,   "swapmark","swap mark",
-CTLX|CNTRL|'Z', shrinkwind, "shrinkwind","shrink window",
-CTLX|'!',       spawn,      "spawn","spawn shell",
-CTLX|'=',       showcpos,   "showcpos","show current position",
-CTLX|'(',       ctlxlp,     "ctlxlp","open macro",
-CTLX|')',       ctlxrp,     "ctlxrp","close macro",
-CTLX|'[',       ctlxlp,     "ctlxlp","open macro",
-CTLX|']',       ctlxrp,     "ctlxrp","close macro",
-CTLX|'1',       onlywind,   "onlywind","one window",
-CTLX|'2',       splitwind,  "splitwind","two windows",
-CTLX|'b',       usebuffer,  "usebuffer","use buffer",
-CTLX|'e',       ctlxe,      "ctlxe","execute macro",
-CTLX|'f',       setrmarg,   "setrmarg","set right margin",
-CTLX|'k',       killbuffer, "killbuffer","kill buffer",
-CTLX|'n',       nextwind,   "nextwind","next window",
-CTLX|'p',       prevwind,   "prevwind","previous window",
-CTLX|'x',       swapmark,   "swapmark","swap mark",
-CTLX|'z',       enlargewind, "enlargewind","grow window",
-META|CNTRL|'H', delbword,    "delbword","delete backward one word",	
-META|CNTRL|'[', set_vi,      "set_vi","set vi mode",
-META|CNTRL|'N', nextfile,    "nextfile","next file",
-META|CNTRL|'R', reread,      "reread","reread file",
-META|CNTRL|'W', filewrite,   "filewrite","write file",
-META|' ',       setmark,     "setmark","set mark",
-META|'.',       ctlxedot,    "ctlxedot","set dot macro",
-META|'!',       reposition,  "reposition","reposition",
-META|'>',       gotoeob,     "gotoeob","goto end of buffer",
-META|'<',       gotobob,     "gotobob","goto beginning of buffer",
-META|'[',       ctlxlp,      "ctlxlp","open macro",
-META|']',       ctlxrp,      "ctlxrp","close macro",
-META|'B',		bufchars,    "bufchars","change buffer",
-META|'c',       capword,     "capword","capitalize word",
-META|'d',       delfword,    "delfword","delete forward one word",
-META|'D',       decryptb,    "decryptb","decrypt buffer",
-META|'E',		encryptb,    "encryptb","encrypt buffer",
-META|'f',       forwword,    "forwword","forward one word",
-META|'h',       help,        "help","print reminder text",
-META|'i',       setindent,   "setindent","set indent",
-META|'l',       lowerword,   "lowerword","lowercase word",
-META|'n',       gotoline,    "gotoline","goto line number",
-META|'p',       pack,        "pack","pack buffer",
-META|'q',       fillpara,    "fillpara","fill paragraph",
-META|'r',       qreplace,    "qreplace","query replace",
-META|'s',       setvar,      "setvar","set value of variable",
-META|'u',       upperword,   "upperword","uppercase word",
-META|'v',       set_vi,      "set_vi","set vi(ew) mode",
-META|'w',       copyregion,  "copyregion","copy region",
-META|'?',       help,        "help","explain following key",
-META|0x7F,      delbword,    "delbword","delete backward one word",
-0x7F,           backdel,     "backdel","delete backward one character",
+CNTRL|'O',      indent,    "indent",
+    "^O      indent",
+
+CNTRL|'P',      backline,  "backline",
+    "^P      backward line",
+CNTRL|'Q',      quote,     "quote",
+    "^Q      quote following character",
+CNTRL|'R',      backsearch,"backsearch",
+    "^R      reverse search",
+CNTRL|'S',      forwsearch,"forwsearch",
+    "^S      forward search",
+CNTRL|'T',      twiddle,   "twiddle",
+    "^T      twiddle characters at point",
+CNTRL|'V',      forwpage,  "fowrpage",
+    "^V      forward page",
+CNTRL|'Y',      yank,      "yank",
+    "^Y      yank text back from kill buffer",
+CNTRL|'Z',      spawncli,  "spawncli",
+    "^Z      spawn shell",
+CTLX|CNTRL|'B', listbuffers, "listbuffers",
+    "^X^B    list buffers",
+CTLX|CNTRL|'C', quit,      "quit",
+    "^X^C    quit",
+CTLX|CNTRL|'F', fileread,  "fileread",
+    "^X^F    read file",
+CTLX|CNTRL|'I', insfile,   "insfile",
+    "^X^I    insert file",
+CTLX|CNTRL|'L', lowerregion, "lowerregion",
+    "^X^L    lowercase marked region",
+CTLX|CNTRL|'M', deblank,   "delblank",
+    "^X^M    delete blank lines",
+CTLX|CNTRL|'O', deblank,   "delblank",
+    "^X^O    delete blank lines",
+CTLX|CNTRL|'N', mvdnwind,  "mvdnwind",
+    "^X^N    move window down one line",
+CTLX|CNTRL|'P', mvupwind,  "mvupwind",
+    "^X^P    move window up one line",
+CTLX|CNTRL|'R', filename,  "filename",
+    "^X^R    change file name",
+CTLX|CNTRL|'S', filesave,  "filesave",
+    "^X^S    save file",
+CTLX|CNTRL|'U', upperregion, "upperregion",
+    "^X^U    uppercase marked region",
+CTLX|CNTRL|'V', filevisit, "filevisit",
+    "^X^V    visit file",
+CTLX|CNTRL|'W', killregion, "killregion",
+    "^X^W    kill region (wipe)",
+CTLX|CNTRL|'X', swapmark,   "swapmark",
+    "^X^X    swap mark",
+CTLX|CNTRL|'Z', shrinkwind, "shrinkwind",
+    "^X^Z    shrink window",
+CTLX|'!',       spawn,      "spawn",
+    "^X!     spawn shell",
+CTLX|'=',       showcpos,   "showcpos",
+    "^X=     show current position",
+CTLX|'(',       ctlxlp,     "ctlxlp",
+    "^X(     open macro",
+CTLX|')',       ctlxrp,     "ctlxrp",
+    "^X)     close macro",
+CTLX|'[',       ctlxlp,     "ctlxlp",
+    "^X[     open macro",
+CTLX|']',       ctlxrp,     "ctlxrp",
+    "^X]     close macro",
+CTLX|'1',       onlywind,   "onlywind",
+    "^X1     one window",
+CTLX|'2',       splitwind,  "splitwind",
+    "^X2     two windows",
+CTLX|'b',       usebuffer,  "usebuffer",
+    "^Xb     use buffer",
+CTLX|'e',       ctlxe,      "ctlxe",
+    "^Xe     execute macro",
+CTLX|'f',       setrmarg,   "setrmarg",
+    "^Xf     set right margin",
+CTLX|'g',       enlargewind, "enlargewind",
+    "^Xg     grow window",
+CTLX|'k',       killbuffer, "killbuffer",
+    "^Xk     kill buffer",
+CTLX|'n',       nextwind,   "nextwind",
+    "^Xn     next window",
+CTLX|'p',       prevwind,   "prevwind",
+    "^Xp     previous window",
+CTLX|'x',       swapmark,   "swapmark",
+    "^Xx     swap mark",
+META|CNTRL|'H', delbword,    "delbword",
+    "M-^H    delete backward one word",	
+META|CNTRL|'[', set_vi,      "set_vi",
+    "M-^[    set vi mode",
+META|CNTRL|'N', nextfile,    "nextfile",
+    "M-^N    next file",
+META|CNTRL|'R', reread,      "reread",
+    "M-^R    reread file",
+META|CNTRL|'W', filewrite,   "filewrite",
+    "M-^W    write file",
+META|' ',       setmark,     "setmark",
+    "M-Space set mark",
+META|'.',       ctlxedot,    "ctlxedot",
+    "M-.     set dot macro",
+META|'!',       reposition,  "reposition",
+    "M-!     reposition",
+META|'>',       gotoeob,     "gotoeob",
+    "M->     goto end of buffer",
+META|'<',       gotobob,     "gotobob",
+    "M-<     goto beginning of buffer",
+META|'[',       ctlxlp,      "ctlxlp",
+    "M-[     open macro",
+META|']',       ctlxrp,      "ctlxrp",
+    "M-]     close macro",
+META|'B',		bufchars,    "bufchars",
+    "M-B     change buffer",
+META|'c',       capword,     "capword",
+    "M-c     capitalize word",
+META|'d',       delfword,    "delfword",
+    "M-d     delete forward word",
+META|'D',       decryptb,    "decryptb",
+    "M-D     decrypt buffer",
+META|'E',		encryptb,    "encryptb",
+    "M-E     encrypt buffer",
+META|'f',       forwword,    "forwword",
+    "M-f     forward word",
+META|'h',       helpkeys,    "helpkeys",
+    "M-h     print key mappings",
+META|'i',       setindent,   "setindent",
+    "M-i     set indent",
+META|'l',       lowerword,   "lowerword",
+    "M-l     lowercase word",
+META|'n',       gotoline,    "gotoline",
+    "M-n     goto line number",
+META|'p',       pack,        "pack",
+    "M-p     pack buffer",
+META|'q',       fillpara,    "fillpara",
+    "M-q     fill paragraph",
+META|'r',       qreplace,    "qreplace",
+    "M-r     query replace",
+META|'s',       setvar,      "setvar",
+    "M-s     set value of variable",
+META|'u',       upperword,   "upperword",
+    "M-u     uppercase word",
+META|'v',       set_vi,      "set_vi",
+    "M-v     set vi(ew) mode",
+META|'w',       copyregion,  "copyregion",
+    "M-w     copy region",
+META|'?',       help,        "help",
+    "M-?     explain following key",
+META|0x7F,      delbword,    "delbword",
+    "M-DEL   delete backward word",
+0x7F,           backdel,     "backdel",
+    "DEL     delete backward character",
 0,              0, 0, 0
 };
 
@@ -436,6 +527,7 @@ BYTE log_buf[256];
 BYTE rc_dir[256];
 BYTE kbm_file[256];
 int running_macro_flag = 0;
+BYTE *help_txt;
 
 void sig_handler(i)
 int i;
@@ -512,6 +604,7 @@ char    *argv[];
             
     (void)vtinit();
     (void)edinit(bname);
+    (void)helpinit();
 
     signal(SIGHUP,sig_handler);
     signal(SIGWINCH,sig_winch);
@@ -1111,9 +1204,25 @@ BYTE    bname[];
     for( i=0;i<NKBDM;i++ ) kbdm[i] = 0;
     rest_kbdm(kbm_file);
 
+
     escape_pressed = 0;
 
     return TRUE;
+}
+
+/*
+ * initialize the help buffer
+ */
+helpinit()
+{
+	KEYTAB *hp;
+    helpbp = bfind("[Help]",TRUE,BFTEMP);       // help buffer
+    addline(helpbp,"[^Xn for next window; ^Xp for previous window]");
+    hp = &keytab[0];   // Look in key table.
+    while (hp->k_code) {
+        addline(helpbp,hp->help);
+        ++hp;
+    }
 }
 
 /*
@@ -1127,7 +1236,7 @@ help(f, n)
 	KEYTAB *ktp;
 	
 	(void)defaultargs(f,n);
-	
+
 	c = getkey();
     if( vi_mode ) {
         ktp = &vi_keytab[0];

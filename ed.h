@@ -211,6 +211,7 @@ WINDOW  *curwp;         // Current window
 BUFFER  *bheadp;        // BUFFER listhead
 WINDOW  *wheadp;        // WINDOW listhead
 BUFFER  *blistp;        // Buffer list BUFFER
+BUFFER  *helpbp;         // help buffer pointer
 int kbdm[NKBDM];        // Macro
 int *kbdmip;            // Input  for above
 int *kbdmop;            // Output for above
@@ -240,6 +241,7 @@ extern  BUFFER  *curbp;     // Current buffer
 extern  WINDOW  *wheadp;    // Head of list of windows
 extern  BUFFER  *bheadp;    // Head of list of buffers
 extern  BUFFER  *blistp;    // Buffer for C-X C-B
+extern  BUFFER  *helpbp;    // Buffer for M-h
 extern  int kbdm[];         // Holds keyboard macro data
 extern  int *kbdmip;        // Input pointer for above
 extern  int *kbdmop;        // Output pointer for above
