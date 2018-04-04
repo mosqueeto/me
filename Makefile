@@ -13,6 +13,7 @@
 PLATFORM=linux
 #PLATFORM=bsd
 CC = cc
+# don't know how to make a static binary any more
 #CFLAGS=		-g -static
 CFLAGS= -g
 #LIBS= -lefence -ltermcap -lc -lncurses 
