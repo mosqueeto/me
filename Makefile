@@ -22,7 +22,7 @@ CFLAGS= -g
 #for mac mini
 #LIBS= -ltermcap -lc -lncurses
 #
-LIBS= -lc -ltermcap -lncurses -lpcre
+LIBS= -lc -ltermcap  -lpcre
 #LIBS= -lc -lncurses
 #
 #for cray 
