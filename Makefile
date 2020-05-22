@@ -15,7 +15,7 @@ PLATFORM=linux
 CC = cc
 # don't know how to make a static binary any more
 #CFLAGS=		-g -static
-CFLAGS= -g
+CFLAGS= -g -Wno-pedantic -fPIC -Wno-implicit
 #LIBS= -lefence -ltermcap -lc -lncurses 
 #LIBS= -ltermcap -lc -lncurses -lpcre
 #

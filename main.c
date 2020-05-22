@@ -158,8 +158,10 @@ Version History:
         file.  changed insert logic to leave at start of insert.  added
         L_HEAD flag for the dummy line, not using it though
 1.93-- expanded help system.
+1.94-- defining a macro clears dot_macro_flag; changed makefile to disable 
+        new default warnings
 */
-#define VERSION_NAME "ME1.93"
+#define VERSION_NAME "ME1.94"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -557,6 +559,7 @@ int i;
 }
 
 main(argc, argv)
+int     argc;
 char    *argv[];
 {
     int    c;
@@ -728,7 +731,10 @@ loop:
  * the next command can look at it. Return the status of
  * command.
  */
-execute(c, f, n)
+int execute(c, f, n)
+int c;
+int f;
+int n;
 {
     register KEYTAB *ktp;
     register int    status;
@@ -980,6 +986,7 @@ ctlxrp(f, n)
     if( kbdmip > &kbdm[0] ) kbdmip--;
     *kbdmip = '\0';
     kbdmip = NULL;
+    dot_macro_flag = 0; // clear dot macro
     return (TRUE);
 }
 /*
@@ -1045,7 +1052,7 @@ int dot(f,n)
     if( kbdmip != NULL || running_macro_flag || !dot_macro_flag) {
         linsert(1,'.');
         text_chg_flag = 0;  //since we are defining a macro, by
-        return;             //definition we have not changed any text
+        return 0;           //definition we have not changed any text
     }
 
     // have there been any text changes outside the . macro?
@@ -1059,7 +1066,7 @@ int dot(f,n)
     if( dot_macro_flag ) {
         ctlxe(f,n);
         text_chg_flag = 0; // cleared every time . macro runs
-                                // set by every other change.
+                           // set by every other change.
     }
 }
 ctlxe(f, n)
@@ -1156,8 +1163,8 @@ BYTE    bname[];
     tabsize = 4;    // default size of tab
     softtabs = 1;   // use soft tabs
     C_tabs = 4;     // in case we want them different, later
-    text_chg_flag =  0;  // any text changes outside current macro?
-    dot_macro_flag =  0;  // in a dot macro?
+    text_chg_flag =  0;     // any text changes outside current macro?
+    dot_macro_flag =  0;    // in a dot macro?
     
     bp = bfind(bname, TRUE, 0);     // First buffer
     blistp = bfind("[List]", TRUE, BFTEMP);     // Buffer list buffer
@@ -1306,5 +1313,5 @@ die( BYTE *s )
 }
 bkp()
 {
-    return;
+    return 0;
 }
