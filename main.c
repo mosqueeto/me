@@ -160,8 +160,10 @@ Version History:
 1.93-- expanded help system.
 1.94-- defining a macro clears dot_macro_flag; changed makefile to disable 
         new default warnings
+1.95-- a dot in the macro definition just inserts a dot in the text, and
+        doesn't recursively run the macro
 */
-#define VERSION_NAME "ME1.94"
+#define VERSION_NAME "ME1.95"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -1048,8 +1050,15 @@ ctlxedot(f, n)
 }
 int dot(f,n)
 {
+    // if in the middle of running a macro. just insert a dot
+    // that is, don't recursively run the macro...
+    if( running_macro_flag ) {
+        linsert(1,'.');
+        return TRUE; 
+    }
+
     // if defining a macro, just insert a .
-    if( kbdmip != NULL || running_macro_flag || !dot_macro_flag) {
+    if( kbdmip != NULL || !dot_macro_flag) {
         linsert(1,'.');
         text_chg_flag = 0;  //since we are defining a macro, by
         return 0;           //definition we have not changed any text
