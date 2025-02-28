@@ -605,6 +605,13 @@ register WINDOW *wp;
         ++n;
     }
     vtputc('-'); ++n;
+    if(vi_mode) {
+        vtputc('V');
+    } else
+    {
+        vtputc('E');
+    }
+    vtputc('-');
     vtputc(' '); ++n;
     
     cp = &bp->bname[0];

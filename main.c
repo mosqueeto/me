@@ -162,8 +162,12 @@ Version History:
         new default warnings
 1.95-- a dot in the macro definition just inserts a dot in the text, and
         doesn't recursively run the macro
+1.96-- a) checking out "view mode" vs vi_mode; b) fix compile warning about 
+        kbdm_file; c) added -V and cleaned up options; d) added search to vi;
+        added exit to vi
 */
-#define VERSION_NAME "ME1.95"
+
+#define VERSION_NAME "ME1.96"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -186,7 +190,7 @@ Version History:
 #define GOOD    0
 #endif
 
-int vi_mode = FALSE;
+
 typedef struct  {
     int k_code;         // Key code
     int (*k_fp)();      // Routine to handle it
@@ -489,7 +493,7 @@ META|'s',       setvar,      "setvar",
     "M-s     set value of variable",
 META|'u',       upperword,   "upperword",
     "M-u     uppercase word",
-META|'v',       set_vi,      "set_vi",
+META|'v',       set_vi,      "set_vi 'i' is clr",
     "M-v     set vi(ew) mode",
 META|'w',       copyregion,  "copyregion",
     "M-w     copy region",
@@ -511,15 +515,21 @@ KEYTAB vi_keytab[] = {
 'k',        backline, "backline","backward one line (vi)",
 'l',        forwchar, "forwchar","forward one character (vi)",
 'n',        forwpage, "forwpage","forward one page (vi)",
+CNTRL|'V',  forwpage, "forwpage","forward one page (vi)",
 'm',        backpage, "backpage","backward one page (vi)",
 'u',        backpage, "backpage","backward one page (vi)",
 'b',        backpage, "backpage","backward one page (vi)",
+CNTRL|'C',  backpage, "backpage","backward one page (vi)",
 'x',        forwdel, "forwdel","forward delete (vi)",
 'A',        vi_A, "vi_A","append at end of line (vi)",
 's',        vi_s, "vi_s","substitute (vi)",
 'q',        quit, "quit","quit (vi)",
 '/',        forwsearch, "forwsearch","forward search (vi)",
 '\\',       backsearch, "backsearch","backward search (vi)",
+CNTRL|'S',  forwsearch, "forwsearch","forward search",
+CNTRL|'R',  backsearch, "backsearch","backward search",
+META|CNTRL|'N', nextfile,    "nextfile","M-^N    next file",
+CTLX|CNTRL|'C',   quit,  "quit","^X^C    quit",
 CNTRL|'G',  clr_vi, "clr_vi","leave vi(ew) mode (vi)",
 0,  0, 0, 0
 };
@@ -528,8 +538,8 @@ static int lookahead = 0;
 static int t47;
 static int do_log = 0;
 BYTE log_buf[256];
-BYTE rc_dir[256];
-BYTE kbm_file[256];
+BYTE rc_dir[NFILEN-20];
+BYTE kbm_file[NFILEN];
 int running_macro_flag = 0;
 BYTE *help_txt;
 
@@ -567,45 +577,58 @@ char    *argv[];
     int    c;
     int    f;
     int    n;
+    int    nfiles;
     int    mflag;
     int    i;
     BYTE   bname[NBUFN];
-    BYTE   fname[256];
+    BYTE   fname[NFILEN];
+    BYTE   options[256];
+    (BYTE *)fnames[256];
 
-//    logit("me starting...\n");
+    vi_mode = FALSE;
+
+logit("\n\nme starting...\n");
+logit("argv[0]: ");
+logit(argv[0]);
+logit("\n");
     
+    strcpy((char *)version,VERSION_NAME);
+
     for( n=0;n++;n<NKBDM ) kbdm[n] = 0;
 
     strcpy((char *)bname, "main");  // name of the default buffer.
 
-    while( (c = getopt(argc,argv,"+hD:m:o:n:f:")) > 0 ){
+    while( (c = getopt(argc,argv,"+hvVD:m:o:n:f:")) > 0 ){
         switch (c) { 
         case 'h':
             usage();
             break;
-//        case 'm':   //specify meta data directory
-//            strncpy((char *)metadir,optarg,255);
-//            break;
         case 'D':
             dbug = atoi(optarg);
             do_log = 1;
             break;  
-//        case 'o':  
-//            strncpy(outfn,optarg,255);
-//            break;
+        case 'v': // vi mode
+            vi_mode = TRUE;
+            break;
+        case 'V': // print version and exit
+            printf("Version %s\n",version);
+            exit(0);
+            break;
         default:
             usage(); 
         }
     }
 
+    if( !strcmp(basename(argv[0]),"v") ) vi_mode = TRUE;
+
     i=optind;
-    n=0;
-    while( argv[i] && n < (NFILES-1) ) {
-        fnames[n] = (BYTE *)malloc( strlen(argv[i])+1 );
-        strcpy((char *)fnames[n],argv[i]);
-        i++;n++;
+    nfiles=0;
+    while( argv[i] && nfiles < (NFILES-1) ) {
+        fnames[nfiles] = (BYTE *)malloc( strlen(argv[i])+1 );
+        strcpy((char *)fnames[nfiles],argv[i]);
+        i++;nfiles++;
     }
-    fnames[n] = NULL;
+    fnames[nfiles] = NULL;
             
     (void)vtinit();
     (void)edinit(bname);
@@ -617,31 +640,20 @@ char    *argv[];
     auto_backup = 0;
     if( geteuid() == 0 ) auto_backup = 1;
 
-    if( !strcmp(argv[0],"v") ) vi_mode = 1;
-
     update();               // clean up the screen
-    if (argc > 1) {
+    if (nfiles > 0) {
         pushkey(META|CNTRL|'N'); // just get the "next" (first) file
-//        strncpy((char *)fname,argv[1],255);
-//        fname[255] = '\0';
-//        n = strlen((char *)fname);
-//        fileread_1(0,1,fname);
     }
     update();               // clean up the screen
     lastflag = 0;
     mpresf = 1;
-    t47=0;
 loop:
     if( resize_window ) {   // set by signal handler
         resize();
         resize_window = 0;
     }
-    if( t47 ) {
-    }
-    t47 = 1;
     c = getkey();
     if (mpresf != FALSE) {
-//logit("gothere 1\n");
         mlerase();
         update();
     }
@@ -793,18 +805,20 @@ int n;
             ++ktp;
         }
     }
-    ktp = &keytab[0];   // Look in key table.
-    while (ktp < &keytab[NKEYTAB]) {
-        if (ktp->k_code == c) {
-            thisflag = 0;
-            status   = (*ktp->k_fp)(f, n);
-            lastflag = thisflag;
-            return (status);
+    else {
+        ktp = &keytab[0];   // Look in key table.
+        while (ktp < &keytab[NKEYTAB]) {
+            if (ktp->k_code == c) {
+                thisflag = 0;
+                status   = (*ktp->k_fp)(f, n);
+                lastflag = thisflag;
+                return (status);
+            }
+            ++ktp;
         }
-        ++ktp;
     }
     
-    if( vi_mode ) return TRUE;  // don't do self-insert
+    if( vi_mode ) return FALSE;  // don't do self-insert
 
 // If a space was typed, fill column is defined, the argument is non-
 // negative, and we are now past fill column, perform word wrap.
@@ -902,12 +916,14 @@ set_vi(f,n)
 {
     (void)defaultargs(f,n);
     vi_mode = TRUE;
+    mlwrite("[vi mode]");
     return TRUE;
 }
 clr_vi(f,n)
 {
     (void)defaultargs(f,n);
     vi_mode = FALSE;
+    mlwrite("[vi mode off]");
     return TRUE;
 }
 
@@ -1147,7 +1163,14 @@ int f,n;
 }
 int usage()
 {
-    printf("me [options] file1 file2 ...\n");
+    printf("\
+me [options] file1 file2 ...\n\
+    h   help\n\
+    v   v mode (vi / view)\n\
+    V   print version and exit\n\
+    D <level> set debug level \n\
+    f\n\
+");
     exit(0);
 }
 
@@ -1165,8 +1188,6 @@ BYTE    bname[];
     register WINDOW *wp;
     int i;
     struct passwd *pw;
-
-    strcpy((char *)version,VERSION_NAME);
 
     rmarg = 77;     // an initial guess...
     tabsize = 4;    // default size of tab
@@ -1202,8 +1223,8 @@ BYTE    bname[];
         fprintf(stderr,"no uid.\n");
         exit(1);
     }
-    snprintf((char *)rc_dir,sizeof(rc_dir)-1,"%s/.me",pw->pw_dir);
-    snprintf((char *)kbm_file,sizeof(kbm_file)-1,"%s/kbm_file",rc_dir);
+    snprintf((char *)rc_dir,NFILEN,"%s/.me",pw->pw_dir);
+    snprintf((char *)kbm_file,NFILEN,"%s/kbm_file",rc_dir);
     if( access((char *)rc_dir,R_OK|W_OK|X_OK) ) {
         // try to create the directory and the kbm file
         if( mkdir((char *)rc_dir,0700) ) {
@@ -1309,7 +1330,7 @@ logint( BYTE *s, int i )
     BYTE buf[256];
     lfd = open("/tmp/log.me", O_CREAT|O_APPEND|O_WRONLY,0644);
     if( lfd < 0 ) die("open of log file failed\n");
-    sprintf((char *)buf,(char *)s,i);
+    sprintf((char *)buf,"%s %d\n",(char *)s,i);
     if( write(lfd,(char *)buf,strlen((char *)buf)) < 0 ) 
         die("logint: write failed\n");
     close(lfd);

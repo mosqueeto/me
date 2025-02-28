@@ -220,6 +220,7 @@ BYTE version[16];       // version string
 BYTE *fnames[NFILES];   // array of input filenames
 int dot_macro_flag;     // in dot macro
 int text_chg_flag;      // record text changes outside macros
+int vi_mode;            // are we in vi mode?
 #else
 extern  int dbug;
 extern  int auto_backup;    // automatically create backup
@@ -251,6 +252,7 @@ extern  BYTE version[];     // version string
 extern  BYTE *fnames[];     // input filenames
 extern  int dot_macro_flag; // in dot macro
 extern  int text_chg_flag;  // record text changes outside macros
+extern  int vi_mode;       // are we in vi mode?
 #endif
 
 extern  int mpresf;         // Stuff in message line

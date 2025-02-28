@@ -244,7 +244,7 @@ setrmarg(f, n)
 /*
  * Display the current position of the cursor,
  * in origin 1 X-Y coordinates, the character that is
- * under the cursor (in octal), and the fraction of the
+ * under the cursor (in hex), and the fraction of the
  * text that is before the cursor. The displayed column
  * is not the current column, but the column that would
  * be used on an infinite width display. Normally this
@@ -331,6 +331,7 @@ showcpos(f, n)
     sprintf((char *)mbuf,
     "line=%d.%d/%d vcol=%d CH=0x%02x .=%ld/%ld (%d%%%%)",
     cln+1, ccl+1, ln, vcol,  cac, nbc, nch, ratio);
+logchr(cac);
     mlwrite(mbuf);
     
     return (TRUE);

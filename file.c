@@ -47,7 +47,7 @@ BYTE     *fn;
 
     if( (nbytes=strlen((char *)fn)) > 1020 ){
         mlwrite("WARNING: backup filename too long");
-        sleep(2);
+        sleep(1);
         return( 0 );
     }
     // prepend ",," to the filename
@@ -82,15 +82,15 @@ long *len;
     if( fstat(fd,&statbuf) != 0 ) {
         io_error = errno;
         mlwrite("Indefined file handle!!");
-        sleep(2);
+        sleep(1);
         mlwrite(strerror(io_error));
-        sleep(2);
+        sleep(1);
         return( FIOSUC );
     }
 
 if( dbug ) {
     mlwrite("slurp: file size = %d",statbuf.st_size);
-    sleep(2);
+    sleep(1);
 }
 
     // slurp the file
@@ -108,7 +108,7 @@ if( dbug ) {
     *len = statbuf.st_size;
 if( dbug ) {
     mlwrite("slurped %d bytes",*len);
-    sleep(2);
+    sleep(1);
 }
     return file_buf;
 }
@@ -171,6 +171,25 @@ Bound to c-x c-f.
 fileread(f, n) 
 {
     BYTE   fname[NFILEN];
+    int    status;
+
+   (void) defaultargs(f,n);
+    if( (status = mlreply("Read file: ", fname, NFILEN)) != TRUE )
+        return (status);   
+logit("fname: ");
+logit(fname);
+
+//    return readin(curbp,fname);
+    // fileread_1 handles dealing with preexisting buffers and so on
+    return fileread_1(f,n,fname);
+}
+
+
+fileread_1(f, n, fname)
+int f;
+int n;
+char * fname;
+{
     BUFFER *bp;
     BUFFER *obp;
     WINDOW *wp;
@@ -179,13 +198,8 @@ fileread(f, n)
     int    status;
     BYTE   bname[NBUFN];
 
-   (void) defaultargs(f,n);
-
-    // get the file name
-    if( (status = mlreply("Read file: ", fname, NFILEN)) != TRUE )
-        return (status);
-
-    // already in a buffer?
+logit("\nin fileread_1\n");
+    // file already in a buffer?
     for( bp=bheadp; bp!=NULL; bp=bp->bufp ) {
         if( (bp->flag&BFTEMP)==0 && 
             strcmp((char *)bp->fname, (char *)fname)==0 ) {
@@ -197,10 +211,12 @@ fileread(f, n)
     }
 
     // ok, need to really read something
-
     makename(bname, fname);   // new buffer name in cannonical form
+logit("\nbname = ");
+logit(bname);
+logit("\n");
 
-    // if the name exists, new name, or use name an clobber contents
+    // if buffer exists, new name, or use name and clobber contents
     while ((bp=bfind(bname, FALSE, 0)) != NULL) {  
         status = mlreply("buffer name: ", bname, NBUFN);
         if (status == ABORT)             // ^g to just quit
@@ -217,6 +233,8 @@ fileread(f, n)
             mlwrite("cannot create buffer");
             return (FALSE);
         }
+logit("\nnew buffer made: ");
+logit(bname);
     }
 
     i = strlen((char *)fname);
@@ -237,12 +255,17 @@ fileread(f, n)
     curbp->nwnd++;
 
     status = readin(curbp,fname);         // read in the file.
+logit("\njust called readin\n");
+logit("for buffer: ");
+logit(curbp->bname);
+
 if( dbug ) {
-    mlwrite("file %s read %d",fname,status);
-    sleep(2);
+    sleep(1);
+    mlwrite("file %s buffer %s status %d",curbp->bname,fname,status);
+    sleep(1);
 }
     return status;
-}
+} // fileread_1
 
 
 //////////////////////////////////////////////////////////////
@@ -261,6 +284,10 @@ BYTE fname[];
     long  nline;
     long fz;
 
+logit("\nreadin: ");
+logit(fname);
+logit("\n ");
+logit(bufp->bname);
     // prepare buffer
     if( ! ( status = bclear(bufp) ) )    // might be old.
         return (FALSE);
@@ -270,6 +297,8 @@ BYTE fname[];
 
     // actual mechanics of the read into current buffer
     status = do_read(bufp,fname,&nline,&fz);
+
+logint("\ndo_read status: ",status);
     
     if ( status == FIOERR ) {
        strcpy((char *)bufp->fname, "");
@@ -299,7 +328,7 @@ BYTE fname[];
         mlwrite("i/o error: %d",status);
         return ( FALSE );
     }
-}
+} // readin
 
 
 /*
@@ -321,7 +350,7 @@ BYTE fname[];
 
 if( dbug ) {                
     mlwrite("[inserting file %s]",fname);
-    sleep(2);
+    sleep(1);
 }
 
     // back up a line and save the mark here
@@ -350,7 +379,7 @@ if( dbug ) {
     mlwrite("[read %d lines (%d bytes)]",nline,fz);
     return (TRUE);
 
-}
+} // ifile
 
 /*
 The basic strategy is to read the entire file into a temporary binary buffer
@@ -382,12 +411,16 @@ long *filesize;
     long rlen,len;
     int fd;
     int nl_flag = 0;
+
+// raw read the file into a buffer
+// decrypt if necessary
+// then create an me buffer with pointers and lengths that
+// point into the raw buffer
     
 if( dbug ) {
     mlwrite("do_read for %s",fname);
-    sleep(2);
+    sleep(1);
 }
-
     // open file
     if( ( fd = ffropen(fname) ) < 0 ) {
         if( io_error != ENOENT )
@@ -400,12 +433,15 @@ if( dbug ) {
     }
 
     status = FIOERR;  // assume it failed
+logit("\ndo_read: ");
+logit(fname);
+
 
     // read the file    
     mlwrite("[reading file %s]",fname);
     if( ! ( file_buf = slurpfile(fd,filesize) ) ) {
         mlwrite("read error");
-        sleep(2);
+        sleep(1);
         return status;
     }
     close(fd); // Ignore close errors.
@@ -451,6 +487,8 @@ if( dbug ) {
     nline = 0;
     while( rlen > 0 ) {
         // find a lines worth of stuff
+logit("\ngetting lines:");
+logit(fbp);
         len = rlen;
         nl_flag = L_NL;
         nlp = (BYTE *)memchr((char *)fbp,'\n',len);
@@ -465,15 +503,19 @@ if( dbug ) {
         }
         
         // add the line into the BUFFER
-        if ((lp=ladd(curwp->dotp->fp,-1)) == NULL) {
+//        if ((lp=ladd(curwp->dotp->fp,-1)) == NULL) {
+        if ((lp=ladd(bp->dotp->fp,-1)) == NULL) {
             status = FIOERR; // Keep message on the display.
             return status;
         }
-        curwp->dotp = lp;
+//        curwp->dotp = lp;
+        bp->dotp = lp;
 
         lp->text = fbp;
         lp->flags |= (L_EXT|nl_flag);
         lp->size = lp->used = len;
+logit("lp->text:");
+logit(lp->text);
 
         
         
@@ -488,6 +530,8 @@ if( dbug ) {
     }
     
     *nlines = nline;
+
+logint("\nnline: ",nline);
 
     status = FIOSUC;
     return status;
@@ -711,7 +755,7 @@ int     update;
         if( nfd < 0 ) {
             io_error = errno;
             mlwrite("Error opening original file");
-            sleep(2);
+            sleep(1);
             mlwrite(strerror(io_error));
             close( ofd );
             return( FIOSUC );
@@ -738,7 +782,7 @@ int     update;
             if( ofd < 0 ) {
                 io_error = errno;
                 mlwrite("Error creating backup file");
-                sleep(2);
+                sleep(1);
                 mlwrite(strerror(io_error));
                 return( FIOSUC ); // don't write the file
             }
@@ -749,7 +793,7 @@ int     update;
             if( fdcopy( nfd,ofd,statbuf.st_size ) < 0 ) {
                 io_error = errno;
                 mlwrite("Error copying to backup file");
-                sleep(2);
+                sleep(1);
                 mlwrite(strerror(io_error));
                 close( nfd );
                 close( ofd );
@@ -765,7 +809,7 @@ int     update;
             if( nfd < 0 ) {
                 io_error = errno;
                 mlwrite("Error rewriting original file");
-                sleep(2);
+                sleep(1);
                 mlwrite(strerror(io_error));
                 close( ofd );
                 return( FIOSUC );
@@ -779,7 +823,7 @@ int     update;
             if( s < 0 ) {
                 io_error = errno;
                 mlwrite("Error renaming file");
-                sleep(2);
+                sleep(1);
                 mlwrite(strerror(io_error));
                 return( FIOSUC );
             }
@@ -790,7 +834,7 @@ int     update;
             if( nfd < 0 ) {
                 io_error = errno;
                 mlwrite("Error creating backup file");
-                sleep(2);
+                sleep(1);
                 mlwrite(strerror(io_error));
                 return( FIOSUC );
             }
@@ -848,7 +892,7 @@ int     update;
         // be sure we are at beginning of file...
         if( lseek(nfd,0,SEEK_SET) < 0 ) {
             mlwrite("Seek error during save");
-            sleep(2);
+            sleep(1);
             mlwrite(strerror(io_error));
             close( nfd );
              return( FIOSUC );
@@ -1007,7 +1051,7 @@ BYTE    *fn;
     strcpy((char *)curfn,(char *)fn);
 if( dbug ) {
     mlwrite("%s opened, fd = %d",curfn,fd);
-    sleep(2);
+    sleep(1);
 }
     return (fd);
 }
@@ -1022,14 +1066,14 @@ int flag;
 
     if ( fstat(fd,&statbuf) != 0 ) {
         mlwrite("stat error: %d, %s",errno,strerror(errno));
-        sleep(2);
+        sleep(1);
         return (FIOFNF);
     }
     file_sz = statbuf.st_size;
     file_x = 0;
 if( dbug ) {
     mlwrite("stat.. file_sz: %d",file_sz);
-    sleep(2);
+    sleep(1);
 }
     for( i=0; i<last_file; i++ ) {
         if( statbuf.st_ino == file_data[i]->st_ino ) {
