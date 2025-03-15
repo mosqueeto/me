@@ -9,6 +9,8 @@
 #
 #For truly clean code, add -Wchar-subscripts -Winline -Wnested-externs 
 #-Wredundant-decls. 
+#
+# libtermcap: sudo apt install libncurses5-dev
 
 PLATFORM=linux
 #PLATFORM=bsd
