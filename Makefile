@@ -23,6 +23,8 @@ CFLAGS= -g -Wno-pedantic -fPIC -Wno-implicit
 #
 #for mac mini
 #LIBS= -ltermcap -lc -lncurses
+#sudo apt install libncurses5-dev
+#sudo apt install libpcre3 libpcre3-dev
 #
 LIBS= -lc -ltermcap  -lpcre
 #LIBS= -lc -lncurses
