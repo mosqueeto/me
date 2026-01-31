@@ -11,6 +11,7 @@
 #-Wredundant-decls. 
 #
 # libtermcap: sudo apt install libncurses5-dev
+# libpcre3: sudo apt install libpcre3-dev
 
 PLATFORM=linux
 #PLATFORM=bsd
