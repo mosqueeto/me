@@ -16,7 +16,7 @@ The routines in this file handle the "file" abstraction.
 
 #define     BLOCKZ 8
 
-extern BYTE *md5string();
+extern BYTE *md5string(BYTE *, long);
 
 //blowfish ecb mode
 //
@@ -128,7 +128,7 @@ BYTE *
 decrypt_buf(pw,buf,bz)
 BYTE *pw;
 BYTE *buf;
-int  *bz;
+long  *bz;
 {
     BYTE *nb;
     int nbx;

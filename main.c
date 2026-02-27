@@ -165,9 +165,10 @@ Version History:
 1.96-- a) checking out "view mode" vs vi_mode; b) fix compile warning about 
         kbdm_file; c) added -V and cleaned up options; d) added search to vi;
         added exit to vi
+1.97-- use claude to clean up all the many warnings
 */
 
-#define VERSION_NAME "ME1.96"
+#define VERSION_NAME "ME1.97"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -193,119 +194,119 @@ Version History:
 
 typedef struct  {
     int k_code;         // Key code
-    int (*k_fp)();      // Routine to handle it
+    int (*k_fp)(int, int); // Routine to handle it
     char *name;         // lot's of literal string assignments here
 	char *help;
 }   KEYTAB;
 
-extern  int backchar();     // Move backward by characters
-extern  int backdel();      // Backward delete
-extern  int backline();     // Move backward by lines
-extern  int backpage();     // Move backward by pages
-extern  int backsearch();   // Search backwards
-extern  int backword();     // Backup by words
-extern  int bufchars();		// count characters in buffer
-extern  int capword();      // Initial capitalize word.
-extern  int clr_vi();       // turn off vi mode
-extern  int copyregion();   // Copy region to kill buffer.
-extern  int ctrlg();        // Abort out of things
-extern  int ctlxe();        // Execute macro
-extern  int ctlxedot();     // Execute macro
-extern  int ctlxlp();       // Begin macro
-extern  int ctlxrp();       // End macro
-extern  int deblank();      // Delete blank lines
-extern  int decryptb();     // Save a decrypted version of a buffer
-extern  int defaultargs();  // verify that f and n are default values
-extern  int delbword();     // Delete backward word.
-extern  int delfword();     // Delete forward word.
-extern  int dot();          // dot macro
-extern  int enlargewind();  // Enlarge display window.
-extern	int	encryptb();		// Encrypt a buffer to a file
-extern  int filename();     // Adjust file name
-extern  int fileread();     // Get a file, read write
-extern  int filesave();     // Save current file
-extern  int filevisit();    // Get a file, read only
-extern  int filewrite();    // Write a file
-extern  int fillpara();     // fill a paragraph.
-extern  int forwchar();     // Move forward by characters
-extern  int forwdel();      // Forward delete
-extern  int forwline();     // Move forward by lines
-extern  int forwpage();     // Move forward by pages
-extern  int forwsearch();   // Search forward
-extern  int forwword();     // Advance by words
+extern  int backchar(int, int);     // Move backward by characters
+extern  int backdel(int, int);      // Backward delete
+extern  int backline(int, int);     // Move backward by lines
+extern  int backpage(int, int);     // Move backward by pages
+extern  int backsearch(int, int);   // Search backwards
+extern  int backword(int, int);     // Backup by words
+extern  int bufchars(int, int);		// count characters in buffer
+extern  int capword(int, int);      // Initial capitalize word.
+extern  int clr_vi(int, int);       // turn off vi mode
+extern  int copyregion(int, int);   // Copy region to kill buffer.
+extern  int ctrlg(int, int);        // Abort out of things
+extern  int ctlxe(int, int);        // Execute macro
+extern  int ctlxedot(int, int);     // Execute macro
+extern  int ctlxlp(int, int);       // Begin macro
+extern  int ctlxrp(int, int);       // End macro
+extern  int deblank(int, int);      // Delete blank lines
+extern  int decryptb(int, int);     // Save a decrypted version of a buffer
+extern  int defaultargs(int, int);  // verify that f and n are default values
+extern  int delbword(int, int);     // Delete backward word.
+extern  int delfword(int, int);     // Delete forward word.
+extern  int dot(int, int);          // dot macro
+extern  int enlargewind(int, int);  // Enlarge display window.
+extern	int	encryptb(int, int);		// Encrypt a buffer to a file
+extern  int filename(int, int);     // Adjust file name
+extern  int fileread(int, int);     // Get a file, read write
+extern  int filesave(int, int);     // Save current file
+extern  int filevisit(int, int);    // Get a file, read only
+extern  int filewrite(int, int);    // Write a file
+extern  int fillpara(int, int);     // fill a paragraph.
+extern  int forwchar(int, int);     // Move forward by characters
+extern  int forwdel(int, int);      // Forward delete
+extern  int forwline(int, int);     // Move forward by lines
+extern  int forwpage(int, int);     // Move forward by pages
+extern  int forwsearch(int, int);   // Search forward
+extern  int forwword(int, int);     // Advance by words
 //extern int    getccol();  // Get current column
-extern  int getvcol();      // Get virtual column
-extern  int gotobob();      // Move to start of buffer
-extern  int gotobol();      // Move to start of line
-extern  int gotoeob();      // Move to end of buffer
-extern  int gotoeol();      // Move to end of line
-extern  int gotoline();     // Go to a line number
-extern	int help();         // print reminder
-extern  int helpkeys();     // complete list of key bindings
-extern  int indent();       // Insert CR-LF, then indent
-extern  int insfile();      // Insert file at current line
-extern  int key_pageup();   // pageup key
-extern  int key_pagedown(); // pagedown key
-extern  int key_left();     // cursor left key
-extern  int key_right();    // cursor right key
-extern  int key_up();       // cursor up key
-extern  int key_down();     // cursor down key
-extern  int key_f1();       // f1 key
-extern  int key_f2();       // f2 key
-extern  int key_f3();       // f3 key
-extern  int key_f4();       // f4 key
-extern  int key_f5();       // f5 key
-extern  int key_f6();       // f6 key
-extern  int key_f7();       // f7 key
-extern  int key_f8();       // f8 key
-extern  int key_f9();       // f9 key
-extern  int key_f10();      // f10 key
-extern  int key_f11();      // f11 key
-extern  int key_f12();      // f12 key
-extern  int killfw();       // Kill forward
-extern  int killbuffer();   // Make a buffer go away.
-extern  int killregion();   // Kill region.
-extern  int listbuffers();  // Display list of buffers
-extern  int lowerregion();  // Lower case region.
-extern  int lowerword();    // Lower case word.
-extern  int mvdnwind();     // Move window down
-extern  int mvupwind();     // Move window up
-extern  int nextfile();     // Move to the next file given on command line
-extern  int nextwind();     // Move to the next window
-extern  int newline();      // Insert CR-LF
-extern  int onlywind();     // Make current window only one
-extern  int openline();     // Open up a blank line
-extern  int pack();         // pack a buffer
-extern  int prevwind();     // Move to the previous window
-extern  int quit();         // Quit
-extern  int quote();        // Insert literal
-extern  int qreplace();     // query replace
-extern  int refresh();      // Refresh the screen
-extern  int reread();       // Reread a file
-extern  int reposition();   // Reposition window
-extern  int set_vi();       // set vi mode
-extern  int setrmarg();     // Set right fill column.
-extern  int setindent();    // set the indent
-extern  int setmark();      // Set mark
-extern  int setvar();       // set a named variable.
-extern  int showcpos();     // Show the cursor position
-extern  int shrinkwind();   // Shrink window.
-extern  int spawn();        // Run a command in a subjob.
-extern  int spawncli();     // Run CLI in a subjob.
-extern  int splitwind();    // Split current window
-extern  int swapmark();     // Swap "." and mark
-extern  int twiddle();      // Twiddle characters
-extern  int tab();          // Insert tab
-extern  int upperregion();  // Upper case region.
-extern  int upperword();    // Upper case word.
-extern  int usebuffer();    // Switch a window to a buffer
-extern  int vi_A();         // "A" vi command
-extern  int vi_s();         // "s" vi command
-extern  int yank();         // Yank back from killbuffer.
+extern  int getvcol(void);      // Get virtual column
+extern  int gotobob(int, int);      // Move to start of buffer
+extern  int gotobol(int, int);      // Move to start of line
+extern  int gotoeob(int, int);      // Move to end of buffer
+extern  int gotoeol(int, int);      // Move to end of line
+extern  int gotoline(int, int);     // Go to a line number
+extern	int help(int, int);         // print reminder
+extern  int helpkeys(int, int);     // complete list of key bindings
+extern  int indent(int, int);       // Insert CR-LF, then indent
+extern  int insfile(int, int);      // Insert file at current line
+extern  int key_pageup(int, int);   // pageup key
+extern  int key_pagedown(int, int); // pagedown key
+extern  int key_left(int, int);     // cursor left key
+extern  int key_right(int, int);    // cursor right key
+extern  int key_up(int, int);       // cursor up key
+extern  int key_down(int, int);     // cursor down key
+extern  int key_f1(int, int);       // f1 key
+extern  int key_f2(int, int);       // f2 key
+extern  int key_f3(int, int);       // f3 key
+extern  int key_f4(int, int);       // f4 key
+extern  int key_f5(int, int);       // f5 key
+extern  int key_f6(int, int);       // f6 key
+extern  int key_f7(int, int);       // f7 key
+extern  int key_f8(int, int);       // f8 key
+extern  int key_f9(int, int);       // f9 key
+extern  int key_f10(int, int);      // f10 key
+extern  int key_f11(int, int);      // f11 key
+extern  int key_f12(int, int);      // f12 key
+extern  int killfw(int, int);       // Kill forward
+extern  int killbuffer(int, int);   // Make a buffer go away.
+extern  int killregion(int, int);   // Kill region.
+extern  int listbuffers(int, int);  // Display list of buffers
+extern  int lowerregion(int, int);  // Lower case region.
+extern  int lowerword(int, int);    // Lower case word.
+extern  int mvdnwind(int, int);     // Move window down
+extern  int mvupwind(int, int);     // Move window up
+extern  int nextfile(int, int);     // Move to the next file given on command line
+extern  int nextwind(int, int);     // Move to the next window
+extern  int newline(int, int);      // Insert CR-LF
+extern  int onlywind(int, int);     // Make current window only one
+extern  int openline(int, int);     // Open up a blank line
+extern  int pack(int, int);         // pack a buffer
+extern  int prevwind(int, int);     // Move to the previous window
+extern  int quit(int, int);         // Quit
+extern  int quote(int, int);        // Insert literal
+extern  int qreplace(int, int);     // query replace
+extern  int refresh(int, int);      // Refresh the screen
+extern  int reread(int, int);       // Reread a file
+extern  int reposition(int, int);   // Reposition window
+extern  int set_vi(int, int);       // set vi mode
+extern  int setrmarg(int, int);     // Set right fill column.
+extern  int setindent(int, int);    // set the indent
+extern  int setmark(int, int);      // Set mark
+extern  int setvar(int, int);       // set a named variable.
+extern  int showcpos(int, int);     // Show the cursor position
+extern  int shrinkwind(int, int);   // Shrink window.
+extern  int spawn(int, int);        // Run a command in a subjob.
+extern  int spawncli(int, int);     // Run CLI in a subjob.
+extern  int splitwind(int, int);    // Split current window
+extern  int swapmark(int, int);     // Swap "." and mark
+extern  int twiddle(int, int);      // Twiddle characters
+extern  int tab(int, int);          // Insert tab
+extern  int upperregion(int, int);  // Upper case region.
+extern  int upperword(int, int);    // Upper case word.
+extern  int usebuffer(int, int);    // Switch a window to a buffer
+extern  int vi_A(int, int);         // "A" vi command
+extern  int vi_s(int, int);         // "s" vi command
+extern  int yank(int, int);         // Yank back from killbuffer.
 
-extern  int logit();        // Log a message to the log file, /tmp/log.me
-extern  int die();
-extern void resize();
+extern  int logit(BYTE *);          // Log a message to the log file, /tmp/log.me
+extern  int die(BYTE *);
+extern void resize(void);
 
 //extern  BYTE *strcpy();  // copy string.
 //extern  BYTE *ffslurp(); // read an entire file
@@ -832,7 +833,7 @@ int n;
         status   = linsert(n, c);
         if(  (c == ' ') && 
              (rmarg > 0 ) && 
-             (getvcol(FALSE) > rmarg) &&
+             (getvcol() > rmarg) &&
              (lgetc(curwp->dotp, curwp->doto-2) != ' ')
              ) 
         {

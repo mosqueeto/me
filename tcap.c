@@ -8,19 +8,22 @@
 #define BEL	0x07
 #define ESC	0x1B
 
-extern int	ttopen();
-extern int	ttgetc();
-extern int	ttputc();
-extern int	ttflush();
-extern int 	ttclose();
-extern int 	tcapmove();
-extern int 	tcapeeol();
-extern int	tcapeeop();
-extern int	tcapbeep();
-extern int	tcapopen();
-extern int tcaphilight();
+extern int	ttopen(void);
+extern int	ttgetc(void);
+extern int	ttputc(int);
+extern int	ttflush(void);
+extern int 	ttclose(void);
+extern int 	tcapmove(int, int);
+extern int 	tcapeeol(void);
+extern int	tcapeeop(void);
+extern int	tcapbeep(void);
+extern int	tcapopen(void);
+extern int tcaphilight(int);
 //extern int	tput();
-extern char	*tgoto();
+extern char	*tgoto(const char *, int, int);
+extern char	*tgetstr(const char *, char **);
+extern int	tgetent(char *, const char *);
+extern int	tgetnum(const char *);
 
 #define TCAPSLEN 315
 
@@ -56,8 +59,7 @@ TERM term = {
 
 tcapopen()
 {
-	char *getenv();
-	char *t, *p, *tgetstr();
+	char *t, *p;
 	char tcbuf[1024];
 	char *tv_stype;
 	char err_str[72];

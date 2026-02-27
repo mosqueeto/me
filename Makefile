@@ -27,7 +27,7 @@ CFLAGS= -g -Wno-pedantic -fPIC -Wno-implicit
 #sudo apt install libncurses5-dev
 #sudo apt install libpcre3 libpcre3-dev
 #
-LIBS= -lc -ltermcap  -lpcre
+LIBS= -lc /usr/lib/x86_64-linux-gnu/libtinfo.so.6 -lpcre
 #LIBS= -lc -lncurses
 #
 #for cray 

@@ -12,8 +12,8 @@
 #define FORWARD 1
 #define BACKWARD 0
 
-static int readpattern();
-static int replaces();
+static int readpattern(char *, char []);
+static int replaces(int, int, int);
 
 static int lastmatch_os;
 

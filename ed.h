@@ -177,13 +177,13 @@ typedef struct  {
     int (*open)();    // Open terminal at the start.
     int (*close)();   // Close terminal at end.
     int (*getchar)(); // Get character from keyboard.
-    int (*putchar)(); // Put character to display.
+    int (*putchar)(int); // Put character to display.
     int (*flush)();   // Flush output buffers.
-    int (*move)();    // Move the cursor, origin 0.
+    int (*move)(int, int); // Move the cursor, origin 0.
     int (*eeol)();    // Erase to end of line.
     int (*eeop)();    // Erase to end of page.
     int (*beep)();    // Beep.
-    int (*hilight)(); // Hilight character.
+    int (*hilight)(int); // Hilight character.
 }   TERM;
 
 typedef struct {
@@ -257,11 +257,11 @@ extern  int vi_mode;       // are we in vi mode?
 
 extern  int mpresf;         // Stuff in message line
 extern  TERM    term;       // Terminal information.
-extern  BUFFER  *bfind();   // Lookup a buffer by name
+extern  BUFFER  *bfind(BYTE *, int, int);   // Lookup a buffer by name
 extern  WINDOW  *wpopup();  // Pop up window creation
-extern  LINE    *lalloc();  // Allocate a line
+extern  LINE    *lalloc(int);  // Allocate a line
 extern  LINE    *lballoc(); // Allocate a line block
-extern  LINE    *ladd();    // Add a line before the arg
+extern  LINE    *ladd(LINE *, int);    // Add a line before the arg
 extern  BYTE    *ffslurpfile(); // read an entire file
-extern  BYTE    *getpw();	// read a password
+extern  BYTE    *getpw(int);	// read a password
 

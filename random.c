@@ -388,7 +388,7 @@ getvcol()
  */
 getccol()
 {
-    return( getvcol(curwp->dotp,curwp->doto) );
+    return( getvcol() );
 }
 
 /* 

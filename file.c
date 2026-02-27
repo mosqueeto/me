@@ -12,11 +12,11 @@ The routines in this file handle the "file" abstraction.
 #include <errno.h>
 #include <fcntl.h>
 
-extern int set_mode();
+extern int set_mode(int);
 #if CRYPT_S
-extern BYTE *md5string();
-extern BYTE *encrypt_buf();
-extern BYTE *decrypt_buf();
+extern BYTE *md5string(BYTE *, long);
+extern BYTE *encrypt_buf(BYTE *, BYTE *, int *);
+extern BYTE *decrypt_buf(BYTE *, BYTE *, long *);
 #endif
 
 static BYTE backupname[1024];

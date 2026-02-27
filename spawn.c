@@ -18,7 +18,7 @@ spawncli(f, n)
 {
 	register char *cp;
 	char	exec_cmd[80];
-	char	*getenv();
+	char	*getenv(const char *);
 
 	(void)defaultargs(f,n);
 	movecursor(term.nrow, 0);		/* Seek to last line.	*/
