@@ -39,8 +39,8 @@ LIBS= -lc /usr/lib/x86_64-linux-gnu/libtinfo.so.6 -lpcre
 
 
 OFILES=		basic.o bf.o buffer.o crypt_buf.o display.o file.o  \
-		keys.o line.o main.o md5.o random.o region.o \
-		search.o spawn.o tcap.o termio.o window.o word.o 
+		keys.o line.o main.o md5.o mouse.o random.o region.o \
+		search.o spawn.o tcap.o termio.o window.o word.o
 
 CFILES=		basic.c bf.c buffer.c crypt_buf.c display.c file.c  \
 		keys.c line.c main.c md5.o random.c region.c \

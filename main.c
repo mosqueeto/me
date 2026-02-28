@@ -304,6 +304,7 @@ extern  int vi_A(int, int);         // "A" vi command
 extern  int vi_s(int, int);         // "s" vi command
 extern  int yank(int, int);         // Yank back from killbuffer.
 
+extern  int mouse_event(int, int);  // Handle mouse event
 extern  int logit(BYTE *);          // Log a message to the log file, /tmp/log.me
 extern  int die(BYTE *);
 extern void resize(void);
@@ -771,6 +772,7 @@ int n;
     }
     if( c == (META|'[') ) {
         c1 = getkey();
+        if( c1 == 'M' ) { return mouse_event(f,n); } // X10 mouse event
         if( c1 == 'A' ) { return backline(f,n); } // up
         if( c1 == 'B' ) { return forwline(f,n); } // down
         if( c1 == 'C' ) { return forwchar(f,n); } // right

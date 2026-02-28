@@ -14,6 +14,8 @@ typedef struct  VIDEO {
     BYTE *v_text;    // Screen data
 }   VIDEO;
 
+extern int mouse_selecting;   /* set in mouse.c while dragging */
+
 int sgarbf  = TRUE;     // TRUE if screen is garbage
 int mpresf  = FALSE;    // TRUE if message in last line
 int vtrow   = 0;        // Row location of SW cursor
@@ -258,6 +260,7 @@ update()
     int    j;
     int    c;
     int    lines_used;
+    int    in_sel;
 
     static int ncalls = 0;
 
@@ -331,6 +334,23 @@ update()
         // new top line was found above, if needed
         lp = wp->topp;
         j = wp->topo;
+
+        /* precompute selection highlight state at start of visible area */
+        in_sel = 0;
+        if (mouse_selecting && wp == curwp) {
+            LINE *scan;
+            /* walk from first buffer line to wp->topp, toggling at each endpoint */
+            for (scan = lforw(wp->bufp->lines);
+                 scan != wp->topp && scan != wp->bufp->lines;
+                 scan = lforw(scan)) {
+                if (scan == curwp->markp) in_sel ^= 1;
+                if (scan == curwp->dotp)  in_sel ^= 1;
+            }
+            /* account for chars before topo on the first visible line */
+            if (curwp->markp == wp->topp && curwp->marko < wp->topo) in_sel ^= 1;
+            if (curwp->dotp  == wp->topp && curwp->doto  < wp->topo) in_sel ^= 1;
+        }
+
         while( vtrow < (wp->toprow + wp->ntrows) ) {
             if( lp == wp->bufp->lines) {  // last line in the buffer
                 vteeol();                 // blank the rest
@@ -338,8 +358,13 @@ update()
                 continue;
             }
             if( j >= llength(lp) ) {
+                /* toggle selection state at end-of-line positions */
+                if (mouse_selecting && wp == curwp && j == llength(lp)) {
+                    if (lp == curwp->markp && j == curwp->marko) in_sel ^= 1;
+                    if (lp == curwp->dotp  && j == curwp->doto)  in_sel ^= 1;
+                }
                 // precise multiple of line length?
-                if( vtcol > 0 && vtcol%term.ncol == 0 ) { 
+                if( vtcol > 0 && vtcol%term.ncol == 0 ) {
                     vteeol();
                     vtcrlf();
                 }
@@ -349,7 +374,14 @@ update()
                 j = 0;
             }
             else {
-                vtputc(lgetc(lp, j++));
+                c = lgetc(lp, j);
+                if (mouse_selecting && wp == curwp) {
+                    if (lp == curwp->markp && j == curwp->marko) in_sel ^= 1;
+                    if (lp == curwp->dotp  && j == curwp->doto)  in_sel ^= 1;
+                    if (in_sel) c |= 0x80;
+                }
+                vtputc(c);
+                j++;
             }
         }
 

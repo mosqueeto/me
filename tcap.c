@@ -139,6 +139,8 @@ tcapopen()
 		exit(1);
 	}
 	ttopen();
+    fputs("\033[?1002h", stdout);   /* enable button-event mouse reporting */
+    fflush(stdout);
 }
 
 tcapmove(row, col)

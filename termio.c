@@ -111,6 +111,8 @@ ttclose()
 	}
 #endif
 #ifdef TERMIOS
+    fputs("\033[?1002l", stdout);   /* disable mouse reporting */
+    fflush(stdout);
 	tcsetattr(2,TCSADRAIN,&ostate);
 #else
 	ioctl(0,TIOCSETP,&ostate);
