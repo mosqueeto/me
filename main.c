@@ -165,10 +165,11 @@ Version History:
 1.96-- a) checking out "view mode" vs vi_mode; b) fix compile warning about 
         kbdm_file; c) added -V and cleaned up options; d) added search to vi;
         added exit to vi
-1.97-- use claude to clean up all the many warnings
+1.97--  used claude to clean up all the many warnings
+1.98--  used claude to add minimal mouse support
 */
 
-#define VERSION_NAME "ME1.97"
+#define VERSION_NAME "ME1.98"
 
 #include <stdio.h>
 #include <stdlib.h>
