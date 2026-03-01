@@ -3,6 +3,8 @@
 
 extern int yank(int, int);
 extern int killregion(int, int);
+extern int backline(int, int);
+extern int forwline(int, int);
 
 int mouse_selecting = 0;   /* 1 while a mouse-defined region is highlighted */
 
@@ -50,6 +52,10 @@ mouse_event(int f, int n)
 
     if (col < 0) col = 0;
     if (row < 0) row = 0;
+
+    /* scroll wheel: up=64, down=65 */
+    if (b == 64) { return backline(f, n); }
+    if (b == 65) { return forwline(f, n); }
 
     /* motion event: button held and mouse moved */
     if (b & 0x20) {
