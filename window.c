@@ -18,7 +18,7 @@
  * M-!. Because of the default, it works like in
  * Gosling.
  */
-reposition(f, n)
+int reposition(int f, int n)
 {
 	(void)defaultargs(f,n);
 	curwp->force = n;
@@ -32,7 +32,7 @@ reposition(f, n)
  * argument it recenters "." in the current
  * window. Bound to "C-L".
  */
-refresh(f, n)
+int refresh(int f, int n)
 {
 	(void)defaultargs(f,n);
 	if (f == FALSE)
@@ -52,7 +52,7 @@ refresh(f, n)
  * nothing if there is only 1 window on
  * the screen. Bound to "C-X C-N".
  */
-nextwind(f, n)
+int nextwind(int f, int n)
 {
 	register WINDOW	*wp;
 
@@ -71,7 +71,7 @@ nextwind(f, n)
  * although the command does not do a lot
  * if there is 1 window.
  */
-prevwind(f, n)
+int prevwind(int f, int n)
 {
 	register WINDOW	*wp1;
 	register WINDOW	*wp2;
@@ -98,8 +98,7 @@ prevwind(f, n)
  * code by having "move down" just be an interface
  * to "move up". Magic. Bound to "C-X C-N".
  */
-mvdnwind(f, n)
-register int	n;
+int mvdnwind(int f, int n)
 {
 	return (mvupwind(f, -n));
 }
@@ -113,8 +112,7 @@ register int	n;
  * not really move "."; it moves the frame). Bound
  * to "C-X C-P".
  */
-mvupwind(f, n)
-register int	n;
+int mvupwind(int f, int n)
 {
 	register LINE	*lp;
 	register int	i;
@@ -156,7 +154,7 @@ register int	n;
  * distruction of a window makes a buffer
  * become undisplayed.
  */
-onlywind(f, n)
+int onlywind(int f, int n)
 {
 	register WINDOW	*wp;
 	register LINE	*lp;
@@ -205,7 +203,7 @@ onlywind(f, n)
  * a "malloc" failure allocating the structure
  * for the new window. Bound to "C-X 2".
  */
-splitwind(f, n)
+int splitwind(int f, int n)
 {
 	register WINDOW	*wp;
 	register LINE	*lp;
@@ -284,7 +282,7 @@ splitwind(f, n)
  * hard work. You don't just set "force reframe"
  * because dot would move. Bound to "C-X Z".
  */
-enlargewind(f, n)
+int enlargewind(int f, int n)
 {
 	register WINDOW	*adjwp;
 	register LINE	*lp;
@@ -332,7 +330,7 @@ enlargewind(f, n)
  * the window descriptions. Ask the redisplay to
  * do all the hard work. Bound to "C-X C-Z".
  */
-shrinkwind(f, n)
+int shrinkwind(int f, int n)
 {
 	register WINDOW	*adjwp;
 	register LINE	*lp;

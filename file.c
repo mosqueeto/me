@@ -39,8 +39,7 @@ BYTE curfn[NFILEN];
 //
 //  figure out a filename for a backup
 //
-makebackupname(fn)
-BYTE     *fn;
+int makebackupname(BYTE *fn)
 {
     int nbytes,first;
     BYTE *p1,*p2;
@@ -73,9 +72,7 @@ BYTE     *fn;
 // Read an entire file
 //
 BYTE *
-slurpfile(fd,len)
-int fd;
-long *len;
+slurpfile(int fd, long *len)
 {
     BYTE *file_buf;
 
@@ -118,7 +115,7 @@ Read a file into the current buffer.  Find the name of the file,
 and call the standard "read a file into the current buffer" code.  
 Bound to "C-X C-V". 
 */
-filevisit(f, n)
+int filevisit(int f, int n)
 {
     int    s;
     BYTE   fname[NFILEN];
@@ -133,7 +130,7 @@ Read the next file into the current buffer.  Find the name of the file,
 and call the standard "read a file into the current buffer" code.  
 Bound to "C-X C-N". 
 */
-nextfile(f, n)
+int nextfile(int f, int n)
 {
     int    s;
     BYTE   fname[NFILEN];
@@ -149,7 +146,7 @@ nextfile(f, n)
 /*
 Insert a file into the current buffer. Bound to "C-X C-I". 
 */
-insfile(f, n)
+int insfile(int f, int n)
 {
     int     s;
     BYTE    fname[NFILEN];
@@ -168,7 +165,7 @@ create a new buffer, read in the text, and switch to the new
 buffer.  
 Bound to c-x c-f. 
 */
-fileread(f, n) 
+int fileread(int f, int n)
 {
     BYTE   fname[NFILEN];
     int    status;
@@ -185,10 +182,7 @@ logit(fname);
 }
 
 
-fileread_1(f, n, fname)
-int f;
-int n;
-char * fname;
+int fileread_1(int f, int n, char *fname)
 {
     BUFFER *bp;
     BUFFER *obp;
@@ -275,9 +269,7 @@ Read file "fname" into the buffer, blowing away any text found there.
 Called by both the read and visit commands.  return the final status of the
 read.
  */
-readin(bufp,fname)
-BUFFER *bufp;
-BYTE fname[];
+int readin(BUFFER *bufp, BYTE fname[])
 {
     WINDOW *wp;
     int  status = TRUE;
@@ -335,8 +327,7 @@ logint("\ndo_read status: ",status);
 Insert file "fname" into the current buffer, Called by insert file command.
 Return the final status of the read.
  */
-ifile(fname)
-BYTE fname[];
+int ifile(BYTE fname[])
 {
     int  status = TRUE;
     long nline = 0;
@@ -388,11 +379,7 @@ emacs "buffer".  This is so we can decrypt (or otherwise preprocess the
 file, though the only processing so far is decrypting.)
 */
 
-int do_read(bp,fname,nlines,filesize)
-BUFFER *bp;
-BYTE fname[];
-long *nlines;
-long *filesize;
+int do_read(BUFFER *bp, BYTE fname[], long *nlines, long *filesize)
 {
     LINE   *lp;
     int  status = TRUE;
@@ -541,9 +528,7 @@ logint("\nnline: ",nline);
 /*
 Take a file name, and from it fabricate a buffer name.
 */
-makename(bname, fname)
-BYTE    bname[];
-BYTE    fname[];
+int makename(BYTE bname[], BYTE fname[])
 {
     BYTE   *cp1;
     BYTE   *cp2;
@@ -560,14 +545,13 @@ BYTE    fname[];
     return TRUE;
 }
 
-int reread(f,n)
+int reread(int f, int n)
 {
     (void)defaultargs(f,n);
     fileread(TRUE,n);
 }
 
-int old_buffer(bp)
-BUFFER  *bp;
+int old_buffer(BUFFER *bp)
 {
     register WINDOW *wp;
     register LINE   *lp;
@@ -616,7 +600,7 @@ Ask for a file name, and write the contents of the current buffer to that
 file.  Update the remembered file name and clear the buffer changed flag. 
 Bound to "c-x c-w". 
 */
-filewrite(f, n)
+int filewrite(int f, int n)
 {
     WINDOW *wp;
     int    s;
@@ -643,7 +627,7 @@ Save the contents of the current buffer in its associated file.  No nothing
 if nothing has changed (this may be a bug, not a feature).  Error if there is
 no remembered file name for the buffer.  Bound to "C-X C-S". 
 */
-filesave(f, n)
+int filesave(int f, int n)
 {
     register WINDOW *wp;
     register int    s;
@@ -709,9 +693,7 @@ hence in the same filesystem, as the original, so hard links always work.
 
 */
 
-writeout(fn,update)
-BYTE    *fn;
-int     update;
+int writeout(BYTE *fn, int update)
 {
     int     s;
     LINE   *lp;
@@ -921,11 +903,8 @@ int     update;
 }
 
 // copy from one fd to another as fast as you can...
-int 
-fdcopy(fdsrc,fdsnk,nbytes)
-int fdsrc;
-int fdsnk;
-int nbytes;
+int
+fdcopy(int fdsrc, int fdsnk, int nbytes)
 {
     char buf[8192];
     int s;
@@ -948,12 +927,8 @@ int nbytes;
  file, so shouldn't be a problem in normal cases.
  complicated by the "nl" flag.
 */
-int 
-putline(fd,s,z,nl) 
-int fd;
-char *s;
-int z;
-int nl;
+int
+putline(int fd, char *s, int z, int nl)
 {
     int ws;
 //    putline_buf[IOBUFZ+1] = 0;
@@ -995,7 +970,7 @@ current buffer.  It is like the "f" command in UNIX "ed".  The operation is
 simple; just zap the name in the BUFFER structure, and mark the windows as
 needing an update.  You can type a blank line at the prompt if you wish. 
 */
-filename(f, n)
+int filename(int f, int n)
 {
     WINDOW *wp;
     int    s;
@@ -1020,8 +995,7 @@ filename(f, n)
 //  Open a file for reading.
 //
 int
-ffropen(fn)
-BYTE    *fn;
+ffropen(BYTE *fn)
 {
     int fd;
 
@@ -1056,9 +1030,7 @@ if( dbug ) {
     return (fd);
 }
 
-int ffget_stat(fd,flag)
-int fd;
-int flag;
+int ffget_stat(int fd, int flag)
 {
     int i;
     long file_sz;       // size of file

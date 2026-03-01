@@ -86,9 +86,7 @@ static unsigned char PADDING[64] = {
 // Digests a string and prints the result.
 
 unsigned char *
-md5string (buf,len)
-	unsigned char *buf;
-	long len;
+md5string(unsigned char *buf, long len)
 {
 	md5_ctx context;
 	static unsigned char digest[16];
@@ -102,9 +100,8 @@ md5string (buf,len)
 
 // md5 initialization. Begins an md5 operation, writing a new context.
 
-void 
-md5init (context)
-	md5_ctx *context;
+void
+md5init(md5_ctx *context)
 {
 	context->count[0] = context->count[1] = 0;
 
@@ -119,11 +116,8 @@ md5init (context)
 //  operation, processing another message block, and updating the
 //  context.
 
-void 
-md5update (context, input, inputLen)
-	md5_ctx *context;        // context
-	unsigned char *input;    // input block
-	unsigned int inputLen;   // length of input block
+void
+md5update(md5_ctx *context, unsigned char *input, unsigned int inputLen)
 {
 	unsigned int i, index, partLen;
 
@@ -162,10 +156,8 @@ md5update (context, input, inputLen)
 //md5 finalization. Ends an md5 message-digest operation, writing the
 //  the message digest and zeroizing the context.
 
-void 
-md5final (digest, context)
-	unsigned char digest[16];   // message digest
-	md5_ctx *context;           // context
+void
+md5final(unsigned char digest[16], md5_ctx *context)
 {
 	unsigned char bits[8];
 	unsigned int index, padLen;
@@ -192,10 +184,8 @@ md5final (digest, context)
 
 // md5 basic transformation. Transforms state based on block.
 
-static void 
-md5transform (state, block)
-	UINT4 state[4];
-	unsigned char block[64];
+static void
+md5transform(UINT4 state[4], unsigned char block[64])
 {
 	UINT4 a = state[0], 
 		  b = state[1], 
@@ -289,11 +279,8 @@ md5transform (state, block)
 // Encodes input (UINT4) into output (unsigned char). Assumes len is
 //  a multiple of 4.
 
-static void 
-encode (output, input, len)
-	unsigned char *output;
-	UINT4 *input;
-	unsigned int len;
+static void
+encode(unsigned char *output, UINT4 *input, unsigned int len)
 {
 	unsigned int i, j;
 
@@ -308,11 +295,8 @@ encode (output, input, len)
 // Decodes input (unsigned char) into output (UINT4). Assumes len is
 //  a multiple of 4.
 
-static void 
-decode (output, input, len)
-	UINT4 *output;
-	unsigned char *input;
-	unsigned int len;
+static void
+decode(UINT4 *output, unsigned char *input, unsigned int len)
 {
 	unsigned int i, j;
 

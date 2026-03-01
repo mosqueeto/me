@@ -62,9 +62,8 @@ new block, or NULL if there isn't any memory left.  Print a message in the
 message line if no space. 
 
 */
-LINE    *
-lalloc(used)
-register int    used;
+LINE *
+lalloc(int used)
 {
     register LINE   *lp;
     register int    size;
@@ -100,9 +99,7 @@ register int    used;
  */
  
 LINE *
-ladd(lp,used)
-LINE *lp;
-int used;
+ladd(LINE *lp, int used)
 {
     LINE *lp1,*lp2;
     
@@ -127,9 +124,8 @@ might be in.  Release the memory.  The buffers are updated too; the magic
 conditions described in the above comments don't hold here. 
 
 */
-void 
-lfree(lp)
-register LINE   *lp;
+void
+lfree(LINE *lp)
 {
     register BUFFER *bp;
     register WINDOW *wp;
@@ -215,10 +211,7 @@ errors.
 
 */
 
-linsertc(c,lp,offset)
-int c;
-LINE *lp;
-int offset;
+int linsertc(int c, LINE *lp, int offset)
 {
     register unsigned char   *src;
     register unsigned char   *snk;
@@ -314,8 +307,7 @@ mlwrite("bug: linsertc");
 Insert "n" copies of the character "c" at the current location of dot. 
 
 */
-linsert(n, c)
-int n,c;
+int linsert(int n, int c)
 {
     if( n <= 0 ) return FALSE;
     // handle special case when at very beginning of empty file
@@ -403,7 +395,7 @@ deleted, and FALSE if they were not (because dot ran into the end of the
 buffer.  The "kflag" is TRUE if the text should be put in the kill buffer. 
 
 */
-ldelete(n, kflag)
+int ldelete(int n, int kflag)
 {
     register unsigned char   *cp1;
     register unsigned char   *cp2;
@@ -547,7 +539,7 @@ void kdelete()
  * more stuff there too later. Return TRUE if all is
  * well, and FALSE on errors.
  */
-kinsert(c)
+int kinsert(int c)
 {
     register char   *nbufp;
     register int    i;
@@ -566,7 +558,7 @@ kinsert(c)
     return (TRUE);
 }
 
-kexpand(n)
+int kexpand(int n)
 {
     register char   *nbufp;
     register int    i;
@@ -590,7 +582,7 @@ kexpand(n)
  * off the end, it returns "-1". This lets the caller
  * just scan along until it gets a "-1" back.
  */
-kremove(n)
+int kremove(int n)
 {
     if (n >= kused)
         return (-1);

@@ -123,7 +123,7 @@ ttclose()
 /*
  * Write a character to the display.
  */
-ttputc(c)
+int ttputc(int c)
 {
 	fputc(c, stdout);
 	return TRUE;

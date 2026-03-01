@@ -16,7 +16,7 @@
  * if the use count is 0. Otherwise, they come
  * from some other window.
  */
-usebuffer(f, n)
+int usebuffer(int f, int n)
 {
     register BUFFER *bp;
     register WINDOW *wp;
@@ -67,7 +67,7 @@ usebuffer(f, n)
  * if the buffer has been changed). Then free the header
  * line and the buffer header. Bound to "C-X K".
  */
-killbuffer(f, n)
+int killbuffer(int f, int n)
 {
     register BUFFER *bp;
     register int    s;
@@ -87,9 +87,7 @@ killbuffer(f, n)
     return freebuffer(bp);
 }
 
-int
-freebuffer(bp)
-BUFFER *bp;
+int freebuffer(BUFFER *bp)
 {
     BUFFER  *bp1;
     BUFFER  *bp2;
@@ -120,7 +118,7 @@ BUFFER *bp;
  * the windows that are displaying the
  * list. Bound to "C-X C-B".
  */
-listbuffers(f, n)
+int listbuffers(int f, int n)
 {
     register WINDOW *wp;
     register BUFFER *bp;
@@ -164,7 +162,7 @@ listbuffers(f, n)
  * the windows that are displaying the
  * list. Bound to "C-X C-B".
  */
-helpkeys(f, n)
+int helpkeys(int f, int n)
 {
     register WINDOW *wp;
     register BUFFER *bp;
@@ -270,10 +268,7 @@ makelist()
     return (TRUE);              /* All done     */
 }
 
-citoa(buf, width, num)
-BYTE   buf[];
-int    width;
-int    num;
+int citoa(BYTE buf[], int width, int num)
 {
     buf[width] = 0;             /* End of string.   */
     while( num >= 10 ){         /* Conditional digits.  */
@@ -294,9 +289,7 @@ int    num;
  * on the end. Return TRUE if it worked and
  * FALSE if you ran out of room.
  */
-addline(bp,text)
-BUFFER  *bp;
-BYTE    *text;
+int addline(BUFFER *bp, BYTE *text)
 {
     register LINE   *lp;
     register int    i;
@@ -343,11 +336,7 @@ with it.  If the named buffer is found, but is a TEMP buffer (like the buffer
 list) complain.  If the buffer is not found and the "cflag" is TRUE, create
 it.  The "bflag" is the settings for the flags in in buffer. 
  */
-BUFFER  *
-bfind(bname, cflag, bflag)
-BYTE   *bname;
-int cflag;
-int bflag;
+BUFFER *bfind(BYTE *bname, int cflag, int bflag)
 {
     BUFFER *bp;
     LINE   *lp;
@@ -398,8 +387,7 @@ the grief of losing text.  The window chain is nearly always wrong if this
 gets called; the caller must arrange for the updates that are required. 
 Return TRUE if everything looks good. 
 */
-bclear(bp)
-register BUFFER *bp;
+int bclear(BUFFER *bp)
 {
     register LINE   *lp;
     register int    s;
@@ -420,8 +408,7 @@ register BUFFER *bp;
 
 
 // figure out how many characters in a buffer
-buffer_size(bp)
-BUFFER *bp;
+int buffer_size(BUFFER *bp)
 {
     register LINE *clp;
     int nch;    
@@ -435,7 +422,7 @@ BUFFER *bp;
     return nch;
 }    
 
-pack(f,n)
+int pack(int f, int n)
 {
 
     register BUFFER *bp;
@@ -451,9 +438,7 @@ pack(f,n)
     return 1;
 }
 
-int
-pack_buffer(bp)
-BUFFER *bp;
+int pack_buffer(BUFFER *bp)
 {
     mlwrite("pack called %d",buffer_size(bp));
     return TRUE;

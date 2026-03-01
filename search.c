@@ -24,7 +24,7 @@ static int lastmatch_os;
  */
 
 int
-forwsearch(f, n)
+forwsearch(int f, int n)
 {
     register int status = TRUE;
     const char *error;
@@ -55,8 +55,7 @@ forwsearch(f, n)
     return( status );
 }
 
-int check_pattern(p)
-BYTE p[];
+int check_pattern(BYTE p[])
 {
     int result = PCRE_CASELESS;
 
@@ -76,7 +75,7 @@ BYTE p[];
  *      (the last character that was matched).
  */
 int
-backsearch(f, n)
+backsearch(int f, int n)
 {
     register int status = TRUE;
     const char *error;
@@ -121,8 +120,7 @@ back:
         match(es), go to last match.
  */
 int
-scanfw(re)
-pcre   *re; // pointer to compiled re
+scanfw(pcre *re)
 {
     LINE *curline;     // current line during scan
     int curoff;        // position within current line
@@ -153,8 +151,7 @@ pcre   *re; // pointer to compiled re
 }
 
 int
-scanbw(re)
-pcre   *re; // pointer to compiled re
+scanbw(pcre *re)
 {
     LINE *curline;     // current line during scan
     int curoff;        // position within current line
@@ -212,9 +209,7 @@ pcre   *re; // pointer to compiled re
  *      string. 
  */
 static int
-readpattern(prompt, apat)
-char    *prompt;
-char    apat[];
+readpattern(char *prompt, char apat[])
 {
     int status;
     char tpat[MAXPAT+20];
@@ -244,9 +239,7 @@ char    apat[];
  * sreplace -- Search and replace.
  */
 int
-sreplace(f, n)
-int f;
-int n;
+sreplace(int f, int n)
 {
     return( replaces(FALSE, f, n) );
 }
@@ -255,9 +248,7 @@ int n;
  * qreplace -- search and replace with query.
  */
 int
-qreplace(f, n)
-int f;
-int n;
+qreplace(int f, int n)
 {
     return( replaces(TRUE, f, n) );
 }
@@ -267,10 +258,7 @@ int n;
  *      string.  Query might be enabled (according to kind).
  */
 static int
-replaces(kind, f, n)
-int     kind;   // Query enabled flag
-int     f;      // default flag
-int     n;      // # of repetition
+replaces(int kind, int f, int n)
 {
 
     return(TRUE);
@@ -281,10 +269,7 @@ int     n;      // # of repetition
  * expandp -- Expand control key sequences for output.
  */
 int
-expandp(srcstr, deststr, maxlength)
-char *srcstr;   // string to expand
-char *deststr;  // destination of expanded string
-int maxlength;  // maximum chars in destination
+expandp(char *srcstr, char *deststr, int maxlength)
 {
     char c;     // current char to translate
 
@@ -329,9 +314,7 @@ int maxlength;  // maximum chars in destination
  *      FALSE depending on if a boundry is hit (ouch).
  */
 int
-boundry(curline, curoff, dir)
-LINE    *curline;
-int     curoff, dir;
+boundry(LINE *curline, int curoff, int dir)
 {
     int    border;
 

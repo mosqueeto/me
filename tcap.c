@@ -143,8 +143,7 @@ tcapopen()
     fflush(stdout);
 }
 
-tcapmove(row, col)
-register int row, col;
+int tcapmove(int row, int col)
 {
 	putpad(tgoto(CM, col, row));
 }
@@ -168,14 +167,12 @@ tcaphilight( int c )
     putpad(MR);ttputc(c);putpad(ME);
 }
 
-putpad(str)
-char	*str;
+int putpad(char *str)
 {
 	tputs(str, 1, ttputc);
 }
 
-putnpad(str, n)
-char	*str;
+int putnpad(char *str, int n)
 {
 	tputs(str, n, ttputc);
 }

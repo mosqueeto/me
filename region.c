@@ -14,7 +14,7 @@ Kill the region.  Ask "getregion" to figure out the bounds of the region.
 Move "." to the start, and kill the characters.  Bound to "C-W". 
 
  */
-killregion(f, n)
+int killregion(int f, int n)
 {
     register int    s;
     REGION      region;
@@ -40,7 +40,7 @@ at all.  This is a bit like a kill region followed by a yank.  Bound to
 "M-W". 
 
 */
-copyregion(f, n)
+int copyregion(int f, int n)
 {
     register LINE   *lp;
     register int    loffs;
@@ -83,7 +83,7 @@ the changes.  Call "lchange" to ensure that redisplay is done in all buffers.
 Bound to "C-X C-L". 
 
 */
-lowerregion(f, n)
+int lowerregion(int f, int n)
 {
     register LINE   *lp;
     register int    loffs;
@@ -123,7 +123,7 @@ the changes.  Call "lchange" to ensure that redisplay is done in all buffers.
 Bound to "C-X C-L". 
 
 */
-upperregion(f, n)
+int upperregion(int f, int n)
 {
     register LINE   *lp;
     register int    loffs;
@@ -165,8 +165,7 @@ of this routine should be prepared to get an "ABORT" status; we might make
 this have the conform thing later. 
 
 */
-getregion(rp)
-register REGION *rp;
+int getregion(REGION *rp)
 {
     register LINE   *flp;
     register LINE   *blp;

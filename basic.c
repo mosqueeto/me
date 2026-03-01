@@ -15,7 +15,7 @@
  * beginning of the current line.
  * Trivial.
  */
-gotobol(f, n)
+int gotobol(int f, int n)
 {
     (void)defaultargs(f,n);
     curwp->doto  = 0;
@@ -30,8 +30,7 @@ gotobol(f, n)
  * location. Error if you try and move
  * out of the buffer.
  */
-backchar(f, n)
-register int    n;
+int backchar(int f, int n)
 {
     register LINE   *lp;
 
@@ -57,7 +56,7 @@ register int    n;
 Move the cursor to the end of the current line. 
 
 */
-gotoeol(f, n)
+int gotoeol(int f, int n)
 {
     (void)defaultargs(f,n);
     curwp->doto = llength(curwp->dotp);
@@ -73,8 +72,7 @@ location, and move ".".  Error if you try and move off the end of the buffer.
 Set the flag if the line pointer for dot changes. 
 
 */
-forwchar(f, n)
-register int    n;
+int forwchar(int f, int n)
 {
     int l;
     (void)defaultargs(f,n);
@@ -101,7 +99,7 @@ register int    n;
  * value of dot is the same as the new value of dot.
  * Normally bound to "M-<".
  */
-gotobob(f, n)
+int gotobob(int f, int n)
 {
     (void)defaultargs(f,n);
     curwp->dotp  = lforw(curbp->lines);
@@ -117,7 +115,7 @@ gotobob(f, n)
  * most of the hard parts of update. Bound to 
  * "M->".
  */
-gotoeob(f, n)
+int gotoeob(int f, int n)
 {
     (void)defaultargs(f,n);
     curwp->dotp  = lback(curbp->lines);
@@ -136,7 +134,7 @@ gotoeob(f, n)
  * If we get to the end of the buffer, just leave the
  * pointer at the end.
  */
-gotoline(f, n)
+int gotoline(int f, int n)
 {
     register LINE *clp;
     register int  linenum;
@@ -169,7 +167,7 @@ gotoline(f, n)
  * the goal column is set. Bound to "C-N". No
  * errors are possible.
  */
-forwline(f, n)
+int forwline(int f, int n)
 {
     register LINE   *dlp;
 
@@ -196,7 +194,7 @@ forwline(f, n)
  * call "movedot" to perform the motion. No errors
  * are possible. Bound to "C-P".
  */
-backline(f, n)
+int backline(int f, int n)
 {
     register LINE   *dlp;
 
@@ -222,8 +220,7 @@ backline(f, n)
  * offset. The offset is returned.
  * Used by "C-N" and "C-P".
  */
-getgoal(dlp)
-register LINE   *dlp;
+int getgoal(LINE *dlp)
 {
     register int    c;
     register int    col;
@@ -256,8 +253,7 @@ register LINE   *dlp;
  * Because this zaps the top line in the display
  * window, we have to do a hard update.
  */
-forwpage(f, n)
-register int    n;
+int forwpage(int f, int n)
 {
     register LINE   *lp;
 
@@ -290,8 +286,7 @@ register int    n;
  * to "M-V". We do a hard update for exactly
  * the same reason.
  */
-backpage(f, n)
-register int    n;
+int backpage(int f, int n)
 {
     register LINE   *lp;
 
@@ -321,7 +316,7 @@ register int    n;
  * to the value of "." in the window. No errors
  * are possible. Bound to "M-.".
  */
-setmark(f, n)
+int setmark(int f, int n)
 {
     (void)defaultargs(f,n);
     curwp->markp = curwp->dotp;
@@ -337,7 +332,7 @@ setmark(f, n)
  * that moves the mark about. The only possible error is
  * "no mark". Bound to "C-X C-X".
  */
-swapmark(f, n)
+int swapmark(int f, int n)
 {
     register LINE   *odotp;
     register int    odoto;
@@ -357,8 +352,7 @@ swapmark(f, n)
     return (TRUE);
 }
 
-isblankline( lp )
-LINE *lp;
+int isblankline(LINE *lp)
 {
     int i;
     char c;
@@ -370,8 +364,7 @@ LINE *lp;
     return TRUE;
 }
 
-firstnonblank( lp )
-LINE *lp;
+int firstnonblank(LINE *lp)
 {
     int i;
     char c;
@@ -384,8 +377,7 @@ LINE *lp;
 }
 
 // should have a configurable condition for this...
-is_para_boundary( lp )
-LINE *lp;
+int is_para_boundary(LINE *lp)
 {
     int i;
     char c,c1;
@@ -428,8 +420,7 @@ go back to the beginning of the current paragraph.  here we look for a blank
 line delimit the beginning of a paragraph
 
  */
-gotobop(f, n)
-int f, n;
+int gotobop(int f, int n)
 {
     int suc; // success of last backchar
 
@@ -471,8 +462,7 @@ go forword to the end of the current paragraph. here we look for a blank line
 to delimit the beginning of a paragraph
 
  */
-gotoeop(f, n)  
-int f, n;
+int gotoeop(int f, int n)
 {
     int suc;  // success of last backchar
 

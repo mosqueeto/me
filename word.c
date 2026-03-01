@@ -20,8 +20,7 @@
  *  NOTE:  This function may leaving trailing blanks.
  * Returns TRUE on success, FALSE on errors.
  */
-wrapword(f,n)
-int f,n;
+int wrapword(int f, int n)
 {
     int i;
 
@@ -58,7 +57,7 @@ int f,n;
  * routines. Error if you try to move beyond
  * the buffers.
  */
-backword(f, n)
+int backword(int f, int n)
 {
     if (n < 0)
         return (forwword(f, -n));
@@ -83,7 +82,7 @@ backword(f, n)
  * motion is done by "forwchar". Error if you
  * try and move beyond the buffer's end.
  */
-forwword(f, n)
+int forwword(int f, int n)
 {
     (void)defaultargs(f,n);
     if (n < 0)
@@ -108,7 +107,7 @@ forwword(f, n)
  * if you try and move beyond the end of the
  * buffer. Bound to "M-U".
  */
-upperword(f, n)
+int upperword(int f, int n)
 {
     register int    c;
 
@@ -141,7 +140,7 @@ upperword(f, n)
  * try and move over the end of the buffer.
  * Bound to "M-L".
  */
-lowerword(f, n)
+int lowerword(int f, int n)
 {
     register int    c;
 
@@ -175,7 +174,7 @@ lowerword(f, n)
  * if you try and move past the end of the buffer.
  * Bound to "M-C".
  */
-capword(f, n)
+int capword(int f, int n)
 {
     register int    c;
 
@@ -218,7 +217,7 @@ capword(f, n)
  * it was and issue the kill command for the
  * right number of characters. Bound to "M-D".
  */
-delfword(f, n)
+int delfword(int f, int n)
 {
     register int    size;
     register LINE   *dotp;
@@ -255,7 +254,7 @@ delfword(f, n)
  * the kill command. Bound to "M-Rubout" and
  * to "M-Backspace".
  */
-delbword(f, n)
+int delbword(int f, int n)
 {
     register int    size;
 
@@ -320,9 +319,7 @@ inword()
  * Fill the current paragraph according to the left and right margin
  * settings.
  */
-fillpara(f, n)
-int f, n;       // deFault flag and Numeric argument
-
+int fillpara(int f, int n)       // deFault flag and Numeric argument
 {
     int c;                 // current char during scan
     int wordlen;           // length of current word
@@ -459,11 +456,7 @@ int f, n;       // deFault flag and Numeric argument
     return(TRUE);
 }
 
-killpara(f, n)  /* delete n paragraphs starting with the current one */
-
-int f;  /* default flag */
-int n;  /* # of paras to delete */
-
+int killpara(int f, int n)  /* delete n paragraphs starting with the current one */
 {
         register int status;    /* returned status of functions */
 
@@ -496,10 +489,7 @@ int n;  /* # of paras to delete */
                         along with average word sizes, # of chars, etc,
                         and report on them.                     */
 
-wordcount(f, n)
-
-int f, n;       /* ignored numeric arguments */
-
+int wordcount(int f, int n)       /* ignored numeric arguments */
 {
         register LINE *lp;      /* current line to scan */
         register int offset;    /* current char to scan */

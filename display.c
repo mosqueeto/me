@@ -148,7 +148,7 @@ vttidy()
 Set the virtual cursor to the specified row and column on the virtual screen. 
 
 */
-vtmove(row, col)
+int vtmove(int row, int col)
 {
     if( row > term.nrow ) die("vtmove: nonsense value for row\n");
     if( col > term.ncol ) die("vtmove: nonsense value for col\n");
@@ -165,8 +165,7 @@ Write a character to the virtual screen.  The virtual row and column are
 updated.  Overflow if the line is too long.  
 
 */
-vtputc(c)
-register int    c;
+int vtputc(int c)
 {
     BYTE *cp;
 
@@ -463,10 +462,7 @@ character sequences; we are using VT52 functionality.  Update the physical
 row and column variables.  It does try to exploit erase to end of line. 
 
 */
-updateline(row, vline, pline)
-int     row;
-BYTE    vline[];
-BYTE    pline[];
+int updateline(int row, BYTE vline[], BYTE pline[])
 {
     BYTE   *cp1;
     BYTE   *cp2;
@@ -614,8 +610,7 @@ change the modeline format by hacking at this routine.  Called by "update"
 any time there is a dirty window. 
 
 */
-modeline(wp)
-register WINDOW *wp;
+int modeline(WINDOW *wp)
 {
     BYTE   *cp;
     int    c;
@@ -695,7 +690,7 @@ register WINDOW *wp;
  * are origin 0. Optimize out random calls.
  * Update "ttrow" and "ttcol".
  */
-movecursor(row, col)
+int movecursor(int row, int col)
 {
     if( row!=vtrow || col!=vtcol) {
         vtrow = row;
@@ -731,8 +726,7 @@ mlerase()
  * a ^G. Used any time a confirmation is
  * required.
  */
-mlyesno(prompt)
-BYTE    *prompt;
+int mlyesno(BYTE *prompt)
 {
     int    s;
     BYTE  buf[64];
@@ -762,26 +756,16 @@ BYTE    *prompt;
  * always terminated by a carriage return. Handle
  * erase, kill, and abort keys.
  */
-mlreply(prompt,buf,nbuf)
-BYTE *prompt;
-BYTE *buf;
-int  nbuf;
+int mlreply(BYTE *prompt, BYTE *buf, int nbuf)
 {
 	return mlreply1(prompt,buf,nbuf,0);
 }
-mlgetpw(prompt,buf,nbuf)
-BYTE *prompt;
-BYTE *buf;
-int  nbuf;
+int mlgetpw(BYTE *prompt, BYTE *buf, int nbuf)
 {
 	return mlreply1(prompt,buf,nbuf,1);
 }
 
-mlreply1(prompt, buf, nbuf,passwd)
-BYTE *prompt;
-BYTE *buf;
-int  nbuf;
-int  passwd;
+int mlreply1(BYTE *prompt, BYTE *buf, int nbuf, int passwd)
 {
     register int    cpos;
     register int    i;
@@ -893,9 +877,7 @@ int  passwd;
     }
 }
 
-int
-do_ml_escapes(s)
-BYTE *s;
+int do_ml_escapes(BYTE *s)
 {
 
     int i = 0;
@@ -978,8 +960,7 @@ BYTE *s;
  * not the case things will get screwed up
  * a little.
  */
-mlputs(s)
-BYTE   *s;
+int mlputs(BYTE *s)
 {
     register int    c;
 
@@ -995,7 +976,7 @@ BYTE   *s;
  * cursor position. This will not handle any
  * negative numbers; maybe it should.
  */
-mlputi(i, r)
+int mlputi(int i, int r)
 {
     register int    q;
 
@@ -1013,8 +994,7 @@ mlputi(i, r)
 /*
  * do the same except as a long integer.
  */
-mlputli(l, r)
-long l;
+int mlputli(long l, int r)
 {
     register long q;
 

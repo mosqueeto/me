@@ -38,10 +38,7 @@ extern BYTE *md5string(BYTE *, long);
 
 
 BYTE *
-encrypt_buf(pw,buf,bz)
-BYTE *pw;
-BYTE *buf;
-int  *bz;
+encrypt_buf(BYTE *pw, BYTE *buf, int *bz)
 {
     BYTE *nb;
     int  nbz;
@@ -125,10 +122,7 @@ int  *bz;
 
 
 BYTE *
-decrypt_buf(pw,buf,bz)
-BYTE *pw;
-BYTE *buf;
-long  *bz;
+decrypt_buf(BYTE *pw, BYTE *buf, long *bz)
 {
     BYTE *nb;
     int nbx;

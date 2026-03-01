@@ -14,7 +14,7 @@
  * command interpreter exits, mark the screen as
  * garbage so that you do a full repaint.
  */
-spawncli(f, n)
+int spawncli(int f, int n)
 {
 	register char *cp;
 	char	exec_cmd[80];
@@ -44,7 +44,7 @@ spawncli(f, n)
  * garbage so a full repaint is done.
  * Bound to "C-X !".
  */
-spawn(f, n)
+int spawn(int f, int n)
 {
 	register int	s;
 	char		line[NLINE];

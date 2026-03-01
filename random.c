@@ -16,9 +16,7 @@ int lastvar = -1;
 // trim leading and trailing whitespace from a string; shift
 // the string to the beginning of the line
 BYTE *
-trim(s,flag)
-BYTE *s;
-int flag;
+trim(BYTE *s, int flag)
 {
     BYTE *s1 = s;
     BYTE *start = s;
@@ -29,10 +27,7 @@ int flag;
     while( *s1++ = *start++ );
 }
 
-void definevar(name,flag,val)
-BYTE  *name;
-int   flag;
-void  *val;
+void definevar(BYTE *name, int flag, void *val)
 {
     if( lastvar >= MAXVARS ) {
         mlwrite("Too many variables");
@@ -45,8 +40,7 @@ void  *val;
     return;
 }
         
-lookupvar(name)
-BYTE *name;
+int lookupvar(BYTE *name)
 {
     int i;
     
@@ -60,7 +54,7 @@ BYTE *name;
 /*
  * Set a variable.
  */
-setvar(f, n)
+int setvar(int f, int n)
 {
     BYTE valbuf[81];
     int v;
@@ -149,7 +143,7 @@ getpw(int confirm)
 }
 
 int
-encryptb(f, n)
+encryptb(int f, int n)
 {
     int i;
     BYTE *p,*p1;
@@ -167,7 +161,7 @@ encryptb(f, n)
     return TRUE;
 }
 int
-decryptb(f, n)
+decryptb(int f, int n)
 {
     int i;
     BYTE  *p,*p1;
@@ -185,7 +179,7 @@ decryptb(f, n)
 /*
  * Set indent
  */
-setindent(f, n)
+int setindent(int f, int n)
 {
     int s,i;
     BYTE numbuf[16];
@@ -220,7 +214,7 @@ setindent(f, n)
 /*
  * Set right margin
  */
-setrmarg(f, n)
+int setrmarg(int f, int n)
 {
     int s,i;
     BYTE numbuf[16];
@@ -250,7 +244,7 @@ setrmarg(f, n)
  * be used on an infinite width display. Normally this
  * is bound to "C-X =".
  */
-showcpos(f, n)
+int showcpos(int f, int n)
 {
     register LINE   *clp;
     register long   nch;
@@ -337,7 +331,7 @@ logchr(cac);
     return (TRUE);
 }
 
-bufchars(f,n)
+int bufchars(int f, int n)
 {
     register LINE   *lp;
     register long   nch;
@@ -399,9 +393,7 @@ make this work.  This fixes up a very common typo with a single stroke.
 Normally bound to "C-T". 
 
  */
-twiddle(f, n)
-int f;
-int n;
+int twiddle(int f, int n)
 {
     register LINE   *dotp;
     register int    doto;
@@ -433,7 +425,7 @@ int n;
  * is always read, even if it is inserted 0 times, for
  * regularity.
  */
-quote(f, n)
+int quote(int f, int n)
 {
     register int    s;
     register int    c;
@@ -471,7 +463,7 @@ quote(f, n)
  * bit code) already. 
  * Bound to "C-I".
  */
-tab(f, n)
+int tab(int f, int n)
 {
     int status;
     (void)defaultargs(f,n);
@@ -495,7 +487,7 @@ tab(f, n)
 /* Open up some blank space after the current line.
 Normally this is bound to "C-O". 
  */
-openline(f, n)
+int openline(int f, int n)
 {
     LINE *lp;
 
@@ -523,7 +515,7 @@ openline(f, n)
 /*
  * Insert a newline. Bound to "C-M".
  */
-newline(f, n)
+int newline(int f, int n)
 {
 //    int nicol;
     register LINE   *lp;
@@ -550,7 +542,7 @@ newline(f, n)
  * blank lines after the line. Normally this command
  * is bound to "C-X C-O". Any argument is ignored.
  */
-deblank(f, n)
+int deblank(int f, int n)
 {
     register LINE   *lp1;
     register LINE   *lp2;
@@ -588,7 +580,7 @@ deblank(f, n)
  * of the subcomands failed. Normally bound
  * to "C-J".
  */
-indent(f, n)
+int indent(int f, int n)
 {
     register int    nicol;
     register int    c;
@@ -626,7 +618,7 @@ indent(f, n)
  * loss of text if typed with a big argument.
  * Normally bound to "C-D".
  */
-forwdel(f, n)
+int forwdel(int f, int n)
 {
     (void)defaultargs(f,n);
     
@@ -648,7 +640,7 @@ forwdel(f, n)
  * if presented with an argument. Bound to both
  * "RUBOUT" and "C-H".
  */
-backdel(f, n)
+int backdel(int f, int n)
 {
     register int    s;
 
@@ -677,7 +669,7 @@ backdel(f, n)
  * kills backwards that number of newlines. Normally
  * bound to "C-K".
  */
-killfw(f, n)
+int killfw(int f, int n)
 {
     register int    chunk;  // how many characters to delete
     register LINE   *nextp;
@@ -732,7 +724,7 @@ killfw(f, n)
  * return also happens when a carriage return is
  * yanked back from the kill buffer.
  */
-yank(f, n)
+int yank(int f, int n)
 {
     register int    c;
     register int    i;
