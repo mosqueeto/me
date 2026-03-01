@@ -270,6 +270,8 @@ int forwpage(int f, int n)
     while (n-- && lp!=curbp->lines) {
         lp = lforw(lp);
     }
+    if (lp == curbp->lines)        /* don't land on the sentinel */
+        lp = lback(lp);
     curwp->topp = lp;
     curwp->dotp  = lp;
     curwp->doto  = 0;

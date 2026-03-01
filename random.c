@@ -267,13 +267,15 @@ int showcpos(int f, int n)
     // start at beginning of buffer, all offsets and counters = 0
     // count all the way to the end, to get total size, but remember
     // where we were when we got to current position
-    clp = lforw(curbp->lines); 
+    clp = lforw(curbp->lines);
     cbo = 0;
     nch = 0;
+    nbc = 0;
+    cac = 0;
     cln = 0;
+    ccl = 0;
     ln  = 0;
     cl  = 0;
-    ccl = 0;
     while( clp != curbp->lines ) { // go through all lines
         if( clp==curwp->dotp ) {  // at the line with the cursor
             nbc = nch + curwp->doto + 1;
