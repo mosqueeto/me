@@ -57,20 +57,10 @@ efme:	$(OFILES)
 crypt: crypt.o bf.o crypt.h ed.h
 		$(CC) $(CFLAGS) crypt.o bf.o -o crypt
 
-k2:	me
-	cp me /g/g1/kent/bin/me; \
-	rm -f /g/g1/kent/bin/v; \
-	ln /g/g1/kent/bin/me /g/g1/kent/bin/v
-
 songbird:	me
 	cp me /usr/local/bin; \
 	rm -f /usr/local/bin/v; \
 	ln -f /usr/local/bin/me /usr/local/bin/v
-
-pecos: me
-	cp me /home/kent/bin/me; \
-	rm -f /home/kent/bin/v; \
-	ln -f /home/kent/bin/me /home/kent/bin/v
 
 clean:
 	rm -f *.o core ,,*
