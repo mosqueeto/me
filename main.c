@@ -468,8 +468,10 @@ META|']',       ctlxrp,      "ctlxrp",
     "M-]     close macro",
 META|'B',		bufchars,    "bufchars",
     "M-B     change buffer",
-META|'c',       capword,     "capword",
-    "M-c     capitalize word",
+META|'C',       capword,     "capword",
+    "M-C     capitalize word",
+META|'c',       copyregion,     "copyregion",
+    "M-c     copy region",
 META|'d',       delfword,    "delfword",
     "M-d     delete forward word",
 META|'D',       decryptb,    "decryptb",
@@ -496,10 +498,14 @@ META|'s',       setvar,      "setvar",
     "M-s     set value of variable",
 META|'u',       upperword,   "upperword",
     "M-u     uppercase word",
-META|'v',       set_vi,      "set_vi 'i' is clr",
-    "M-v     set vi(ew) mode",
+META|'V',       set_vi,      "set_vi 'i' is clr",
+    "M-V     set vi(ew) mode",
+META|'v',       yank,      "paste",
+    "M-v     paste cut text",
 META|'w',       copyregion,  "copyregion",
     "M-w     copy region",
+META|'x',    killregion,"cut region",
+    "M-x     cut marked text",
 META|'?',       help,        "help",
     "M-?     explain following key",
 META|0x7F,      delbword,    "delbword",
@@ -546,8 +552,7 @@ BYTE kbm_file[NFILEN];
 int running_macro_flag = 0;
 BYTE *help_txt;
 
-void sig_handler(i)
-int i;
+void sig_handler(int i)
 {
     BYTE fname[80];
     BYTE s[80];
@@ -567,15 +572,12 @@ int i;
     vttidy();
     exit(GOOD);
 }
-void sig_winch(i)
-int i;
+void sig_winch(int i)
 {
    resize_window = ++i;
 }
 
-main(argc, argv)
-int     argc;
-char    *argv[];
+int main(int argc, char *argv[])
 {
     int    c;
     int    f;
@@ -748,10 +750,7 @@ loop:
  * the next command can look at it. Return the status of
  * command.
  */
-int execute(c, f, n)
-int c;
-int f;
-int n;
+int execute(int c, int f, int n)
 {
     register KEYTAB *ktp;
     register int    status;
@@ -916,14 +915,14 @@ getctl()
     return (c);
 }
 
-set_vi(f,n)
+int set_vi(int f, int n)
 {
     (void)defaultargs(f,n);
     vi_mode = TRUE;
     mlwrite("[vi mode]");
     return TRUE;
 }
-clr_vi(f,n)
+int clr_vi(int f, int n)
 {
     (void)defaultargs(f,n);
     vi_mode = FALSE;
@@ -931,19 +930,19 @@ clr_vi(f,n)
     return TRUE;
 }
 
-vi_A(f,n)
+int vi_A(int f, int n)
 {
     clr_vi(f,n);
     return gotoeol(f,n);
 }
 
-vi_s(f,n)
+int vi_s(int f, int n)
 {
     forwdel(f,n);
     return clr_vi(f,n);
 }
 
-set_mode(m)
+int set_mode(int m)
 {
     if( m == 'C' ){
         mlwrite("Setting C mode");
@@ -958,7 +957,7 @@ set_mode(m)
  * changed and not written out. Normally bound
  * to "C-X C-C".
  */
-quit(f, n)
+int quit(int f, int n)
 {
     register int s;
 
@@ -979,7 +978,7 @@ quit(f, n)
  * in keyboard processing. Set up
  * variables and return.
  */
-ctlxlp(f, n)
+int ctlxlp(int f, int n)
 {
     (void)defaultargs(f,n);
     if (kbdmip!=NULL || kbdmop!=NULL) {
@@ -997,7 +996,7 @@ ctlxlp(f, n)
  * above routine. Set up the variables
  * and return to the caller.
  */
-ctlxrp(f, n)
+int ctlxrp(int f, int n)
 {
     (void)defaultargs(f,n);
     if (kbdmip == NULL) {
@@ -1014,8 +1013,7 @@ ctlxrp(f, n)
 /*
  * save the keyboard macro, if any
  */
-save_kbdm(fname) 
-BYTE *fname;
+int save_kbdm(BYTE *fname)
 {
     int fd,l;
     l = strlen((char *)kbdm);
@@ -1035,8 +1033,7 @@ BYTE *fname;
 /*
  * restore the keyboard macro, if any
  */
-rest_kbdm(fname) 
-BYTE *fname;
+int rest_kbdm(BYTE *fname)
 {
     int fd,l;
     BYTE buf[255];
@@ -1060,7 +1057,7 @@ BYTE *fname;
  * Return TRUE if all ok, else
  * FALSE.
  */
-ctlxedot(f, n)
+int ctlxedot(int f, int n)
 {
     dot_macro_flag = 1 - dot_macro_flag;
     if( dot_macro_flag ) {
@@ -1068,7 +1065,7 @@ ctlxedot(f, n)
         text_chg_flag = 0;
     }
 }
-int dot(f,n)
+int dot(int f, int n)
 {
     // if in the middle of running a macro. just insert a dot
     // that is, don't recursively run the macro...
@@ -1098,7 +1095,7 @@ int dot(f,n)
                            // set by every other change.
     }
 }
-ctlxe(f, n)
+int ctlxe(int f, int n)
 {
     register int    c;
     register int    af;
@@ -1142,7 +1139,7 @@ ctlxe(f, n)
  * to do general aborting of
  * stuff.
  */
-ctrlg(f, n)
+int ctrlg(int f, int n)
 {
     (void)defaultargs(f,n);
     (*term.beep)();
@@ -1159,8 +1156,7 @@ make sure that the f and n args seem to be used.  this is only to keep cc
 from spitting out useless warnings for hundreds of function references... 
  
 */
-int defaultargs(f,n)
-int f,n;
+int defaultargs(int f, int n)
 {
     if( f || (n!=1) )   return 1;
     else return 0;
@@ -1185,8 +1181,7 @@ an argument, because 'main' may have been told to read in a file by default,
 and we want the buffer name to be right. 
 
 */
-edinit(bname)
-BYTE    bname[];
+int edinit(BYTE bname[])
 {
     register BUFFER *bp;
     register WINDOW *wp;
@@ -1269,7 +1264,7 @@ helpinit()
 /*
  * print the help text in the mode line.
  */
-help(f, n)
+int help(int f, int n)
 {
 	int	s;
 	int	c;
