@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include "ed.h"
 
+extern int yank(int, int);
+extern int killregion(int, int);
+
 int mouse_selecting = 0;   /* 1 while a mouse-defined region is highlighted */
 
 static int   dragging = 0; /* 1 while the left button is physically held   */
@@ -70,10 +73,17 @@ mouse_event(int f, int n)
         mouse_selecting = 0;   /* clear any existing highlight */
         dragging = 1;
         return TRUE;
+    case 1:  /* middle press: yank from kill buffer at current cursor */
+        dragging = 0;
+        return yank(f, n);
+    case 2:  /* right press: kill region (cut to kill buffer) */
+        dragging = 0;
+        mouse_selecting = 0;
+        return killregion(f, n);
     case 3:  /* release: drop the button; if we dragged, region persists */
         dragging = 0;
         return TRUE;
-    default: /* middle or right: no mouse semantics */
+    default:
         dragging = 0;
         return TRUE;
     }
