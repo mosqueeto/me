@@ -20,7 +20,7 @@ mouse_setpos(int col, int row)
     int   i, vcol, ts;
 
     /* navigate from the current cursor (at terminal row currow) to the
-       clicked terminal row — this is always consistent with what update()
+       clicked terminal row -- this is always consistent with what update()
        just placed on screen, even when topp/topo have an unusual offset */
     lp = curwp->dotp;
     i  = row - currow;
