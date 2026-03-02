@@ -7,6 +7,7 @@ extern int backline(int, int);
 extern int forwline(int, int);
 
 int mouse_selecting = 0;   /* 1 while a mouse-defined region is highlighted */
+int mouse_enabled   = 1;   /* 1 while terminal mouse reporting is active     */
 
 static int   dragging = 0; /* 1 while the left button is physically held   */
 static LINE *press_lp = NULL;
@@ -103,4 +104,24 @@ mouse_event(int f, int n)
         dragging = 0;
         return TRUE;
     }
+}
+
+int
+mouse_toggle(int f, int n)
+{
+    (void)defaultargs(f, n);
+    if (mouse_enabled) {
+        fputs("\033[?1002l", stdout);   /* disable mouse reporting */
+        fflush(stdout);
+        mouse_selecting = 0;
+        dragging        = 0;
+        mouse_enabled   = 0;
+        mlwrite("[Mouse off]");
+    } else {
+        fputs("\033[?1002h", stdout);   /* enable mouse reporting */
+        fflush(stdout);
+        mouse_enabled = 1;
+        mlwrite("[Mouse on]");
+    }
+    return TRUE;
 }

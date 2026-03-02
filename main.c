@@ -307,6 +307,7 @@ extern  int vi_s(int, int);         // "s" vi command
 extern  int yank(int, int);         // Yank back from killbuffer.
 
 extern  int mouse_event(int, int);  // Handle mouse event
+extern  int mouse_toggle(int, int); // Toggle mouse reporting on/off
 extern  int logit(BYTE *);          // Log a message to the log file, /tmp/log.me
 extern  int die(BYTE *);
 extern void resize(void);
@@ -487,6 +488,8 @@ META|'i',       setindent,   "setindent",
     "M-i     set indent",
 META|'l',       lowerword,   "lowerword",
     "M-l     lowercase word",
+META|'m',       mouse_toggle,"mouse_toggle",
+    "M-m     toggle mouse on/off",
 META|'n',       gotoline,    "gotoline",
     "M-n     goto line number",
 META|'p',       pack,        "pack",
