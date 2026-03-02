@@ -167,9 +167,10 @@ Version History:
         added exit to vi
 1.97--  used claude to clean up all the many warnings
 1.98--  used claude to add minimal mouse support
+1.99--  cleaned up mouse semantics, fixed a bug w/ ^V past end of buffer
 */
 
-#define VERSION_NAME "ME1.98"
+#define VERSION_NAME "ME1.99"
 
 #include <stdio.h>
 #include <stdlib.h>

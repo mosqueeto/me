@@ -18,11 +18,21 @@ mouse_setpos(int col, int row)
     LINE *lp;
     int   i, vcol, ts;
 
-    /* advance 'row' lines from top of window */
-    lp = curwp->topp;
-    for (i = 0; i < row; i++) {
-        if (lforw(lp) == curbp->lines) break;
-        lp = lforw(lp);
+    /* navigate from the current cursor (at terminal row currow) to the
+       clicked terminal row — this is always consistent with what update()
+       just placed on screen, even when topp/topo have an unusual offset */
+    lp = curwp->dotp;
+    i  = row - currow;
+    if (i > 0) {
+        while (i-- > 0) {
+            if (lforw(lp) == curbp->lines) break;
+            lp = lforw(lp);
+        }
+    } else if (i < 0) {
+        while (i++ < 0) {
+            if (lback(lp) == curbp->lines) break;
+            lp = lback(lp);
+        }
     }
     curwp->dotp = lp;
 
