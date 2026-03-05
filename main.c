@@ -308,6 +308,7 @@ extern  int yank(int, int);         // Yank back from killbuffer.
 
 extern  int mouse_event(int, int);  // Handle mouse event
 extern  int mouse_toggle(int, int); // Toggle mouse reporting on/off
+extern  int mouse_enabled;          // 1 if mouse reporting is active
 extern  int logit(BYTE *);          // Log a message to the log file, /tmp/log.me
 extern  int die(BYTE *);
 extern void resize(void);
@@ -607,15 +608,15 @@ logit("\n");
 
     strcpy((char *)bname, "main");  // name of the default buffer.
 
-    while( (c = getopt(argc,argv,"+hvVD:m:o:n:f:")) > 0 ){
-        switch (c) { 
+    while( (c = getopt(argc,argv,"+hvVD:m:o:n:f:M")) > 0 ){
+        switch (c) {
         case 'h':
             usage();
             break;
         case 'D':
             dbug = atoi(optarg);
             do_log = 1;
-            break;  
+            break;
         case 'v': // vi mode
             vi_mode = TRUE;
             break;
@@ -623,8 +624,11 @@ logit("\n");
             printf("Version %s\n",version);
             exit(0);
             break;
+        case 'M': // start with mouse reporting disabled
+            mouse_enabled = 0;
+            break;
         default:
-            usage(); 
+            usage();
         }
     }
 
@@ -1173,6 +1177,7 @@ me [options] file1 file2 ...\n\
     v   v mode (vi / view)\n\
     V   print version and exit\n\
     D <level> set debug level \n\
+    M   start with mouse reporting off\n\
     f\n\
 ");
     exit(0);

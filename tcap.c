@@ -20,6 +20,7 @@ extern int	tcapbeep(void);
 extern int	tcapopen(void);
 extern int tcaphilight(int);
 //extern int	tput();
+extern int  mouse_enabled;
 extern char	*tgoto(const char *, int, int);
 extern char	*tgetstr(const char *, char **);
 extern int	tgetent(char *, const char *);
@@ -139,8 +140,10 @@ tcapopen()
 		exit(1);
 	}
 	ttopen();
-    fputs("\033[?1002h", stdout);   /* enable button-event mouse reporting */
-    fflush(stdout);
+    if (mouse_enabled) {
+        fputs("\033[?1002h", stdout);   /* enable button-event mouse reporting */
+        fflush(stdout);
+    }
 }
 
 int tcapmove(int row, int col)
