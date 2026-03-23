@@ -60,7 +60,7 @@ crypt: crypt.o bf.o crypt.h ed.h
 songbird:	me
 	sudo cp me /bin; \
 	sudo rm -f /bin/v; \
-	sudo ln -f /bin/me /usr/local/bin/v
+	sudo ln -f /bin/me /bin/v
 
 clean:
 	rm -f *.o core ,,*
