@@ -39,11 +39,11 @@ LIBS= -lc /usr/lib/x86_64-linux-gnu/libtinfo.so.6 -lpcre
 
 
 OFILES=		basic.o bf.o buffer.o crypt_buf.o display.o file.o  \
-		keys.o line.o main.o md5.o mouse.o random.o region.o \
+		init.o keys.o line.o main.o md5.o mouse.o random.o region.o \
 		search.o spawn.o tcap.o termio.o window.o word.o
 
 CFILES=		basic.c bf.c buffer.c crypt_buf.c display.c file.c  \
-		keys.c line.c main.c md5.o random.c region.c \
+		init.c keys.c line.c main.c md5.o random.c region.c \
 		search.c spawn.c tcap.c termio.c window.c word.c
 
 HFILES=	 ed.h search.h crypt.h
@@ -58,9 +58,9 @@ crypt: crypt.o bf.o crypt.h ed.h
 		$(CC) $(CFLAGS) crypt.o bf.o -o crypt
 
 songbird:	me
-	cp me /usr/local/bin; \
-	rm -f /usr/local/bin/v; \
-	ln -f /usr/local/bin/me /usr/local/bin/v
+	sudo cp me /bin; \
+	sudo rm -f /bin/v; \
+	sudo ln -f /bin/me /usr/local/bin/v
 
 clean:
 	rm -f *.o core ,,*

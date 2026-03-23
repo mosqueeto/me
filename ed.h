@@ -192,6 +192,30 @@ typedef struct {
     void    *val;       // pointer to its value
 } EVAR;
 
+typedef struct {
+    int   k_code;           // Key code
+    int (*k_fp)(int, int);  // Routine to handle it
+    char *name;             // Built-in name string
+    char *help;             // Help text
+} KEYTAB;
+
+#define NUSER_KEYS 64
+
+typedef struct {
+    int   k_code;           // Key code
+    int (*k_fp)(int, int);  // Non-NULL: rebind to built-in
+    char *k_cmd;            // Non-NULL: pipe shell command
+} USER_KEY;
+
+extern KEYTAB    keytab[];
+extern USER_KEY  user_keys[];
+extern int       n_user_keys;
+
+extern int  pipe_interactive(int, int);
+extern int  user_execute(int, int, int);
+extern void read_init_file(BYTE *);
+extern void init_rc_dir(BYTE *);
+
 #ifdef  ED_MAIN
 int dbug;
 int auto_backup;        // automatically create backup

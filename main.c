@@ -168,9 +168,13 @@ Version History:
 1.97--  used claude to clean up all the many warnings
 1.98--  used claude to add minimal mouse support
 1.99--  cleaned up mouse semantics, fixed a bug w/ ^V past end of buffer
+2.00--  init.c: user key table, ~/.me/init file reader (set/bind/macro directives),
+        pipe-buffer-through-command (C-X |), ~/.me/macros/ named macro library
+2.01--  per-uid log file (/tmp/log.me.<uid>), mode 0600; logchr/logint now
+        respect do_log flag
 */
 
-#define VERSION_NAME "ME1.99"
+#define VERSION_NAME "ME2.01"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -194,15 +198,11 @@ Version History:
 #endif
 
 
-typedef struct  {
-    int k_code;         // Key code
-    int (*k_fp)(int, int); // Routine to handle it
-    char *name;         // lot's of literal string assignments here
-	char *help;
-}   KEYTAB;
 
 extern  int backchar(int, int);     // Move backward by characters
 extern  int backdel(int, int);      // Backward delete
+extern  int pipe_interactive(int, int); // Pipe buffer through shell command
+extern  void init_rc_dir(BYTE *);       // Create/verify ~/.me/ structure
 extern  int backline(int, int);     // Move backward by lines
 extern  int backpage(int, int);     // Move backward by pages
 extern  int backsearch(int, int);   // Search backwards
@@ -309,7 +309,7 @@ extern  int yank(int, int);         // Yank back from killbuffer.
 extern  int mouse_event(int, int);  // Handle mouse event
 extern  int mouse_toggle(int, int); // Toggle mouse reporting on/off
 extern  int mouse_enabled;          // 1 if mouse reporting is active
-extern  int logit(BYTE *);          // Log a message to the log file, /tmp/log.me
+extern void logit(BYTE *);          // Log a message to the log file, /tmp/log.me.<uid>
 extern  int die(BYTE *);
 extern void resize(void);
 
@@ -445,6 +445,8 @@ CTLX|'p',       prevwind,   "prevwind",
     "^Xp     previous window",
 CTLX|'x',       swapmark,   "swapmark",
     "^Xx     swap mark",
+CTLX|'|',       pipe_interactive, "pipe",
+    "^X|     pipe buffer through shell command",
 META|CNTRL|'H', delbword,    "delbword",
     "M-^H    delete backward one word",	
 META|CNTRL|'[', set_vi,      "set_vi",
@@ -551,6 +553,7 @@ static resize_window = 0;
 static int lookahead = 0;
 static int t47;
 static int do_log = 0;
+static char log_path[64];
 BYTE log_buf[256];
 BYTE rc_dir[NFILEN-20];
 BYTE kbm_file[NFILEN];
@@ -817,6 +820,10 @@ int execute(int c, int f, int n)
         }
     }
     else {
+        // Check user key table first (init-file bindings override built-ins)
+        status = user_execute(c, f, n);
+        if (status != -1) return status;
+
         ktp = &keytab[0];   // Look in key table.
         while (ktp < &keytab[NKEYTAB]) {
             if (ktp->k_code == c) {
@@ -1233,22 +1240,11 @@ int edinit(BYTE bname[])
     }
     snprintf((char *)rc_dir,NFILEN,"%s/.me",pw->pw_dir);
     snprintf((char *)kbm_file,NFILEN,"%s/kbm_file",rc_dir);
-    if( access((char *)rc_dir,R_OK|W_OK|X_OK) ) {
-        // try to create the directory and the kbm file
-        if( mkdir((char *)rc_dir,0700) ) {
-            printf("Note: couldn't create state directory %s\r\n",
-                (char *)rc_dir);
-            sleep(2);
-        }
-        else {
-            printf("Note: initializing state directory %s\r\n",(char *)rc_dir);
-            sleep(2);
-        }
-    }
+    init_rc_dir(rc_dir);
     kbdmip = NULL;
     for( i=0;i<NKBDM;i++ ) kbdm[i] = 0;
     rest_kbdm(kbm_file);
-
+    read_init_file(rc_dir);
 
     escape_pressed = 0;
 
@@ -1310,36 +1306,41 @@ int help(int f, int n)
 	return TRUE;
 }
 
-logit( BYTE *s )
+void logit( BYTE *s )
 {
     int lfd;
     int i;
     if( do_log ) {
-        lfd = open("/tmp/log.me", O_CREAT|O_APPEND|O_WRONLY,0644);
+        if( !log_path[0] ) sprintf(log_path, "/tmp/log.me.%d", (int)getuid());
+        lfd = open(log_path, O_CREAT|O_APPEND|O_WRONLY,0600);
         if( lfd < 0 ) die("open of log file failed\n");
-        if( (i = write(lfd,(char *)s,strlen((char *)s)) ) < 0 ) 
+        if( (i = write(lfd,(char *)s,strlen((char *)s)) ) < 0 )
             die("write failed\n");
         close(lfd);
     }
 }
-logchr( int c )
+void logchr( int c )
 {
     int lfd;
     BYTE buf[8];
-    lfd = open("/tmp/log.me", O_CREAT|O_APPEND|O_WRONLY,0644);
+    if( !do_log ) return;
+    if( !log_path[0] ) sprintf(log_path, "/tmp/log.me.%d", (int)getuid());
+    lfd = open(log_path, O_CREAT|O_APPEND|O_WRONLY,0600);
     if( lfd < 0 ) die("open of log file failed\n");
     buf[0] = c & 0xff;
     if( write(lfd,buf,1) < 0 ) die("logchr: write failed\n");
     close(lfd);
 }
-logint( BYTE *s, int i )
+void logint( BYTE *s, int i )
 {
     int lfd;
     BYTE buf[256];
-    lfd = open("/tmp/log.me", O_CREAT|O_APPEND|O_WRONLY,0644);
+    if( !do_log ) return;
+    if( !log_path[0] ) sprintf(log_path, "/tmp/log.me.%d", (int)getuid());
+    lfd = open(log_path, O_CREAT|O_APPEND|O_WRONLY,0600);
     if( lfd < 0 ) die("open of log file failed\n");
     sprintf((char *)buf,"%s %d\n",(char *)s,i);
-    if( write(lfd,(char *)buf,strlen((char *)buf)) < 0 ) 
+    if( write(lfd,(char *)buf,strlen((char *)buf)) < 0 )
         die("logint: write failed\n");
     close(lfd);
 }
