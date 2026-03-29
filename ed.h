@@ -41,6 +41,7 @@
 
 #define MDMAGIC 0x0001  // use magic patterns in search
 #define MDEXACT 0x0002  // match exact case
+#define MDWRAP  0x0004  // word-wrap (WP) mode
 
 #define TAB 0x09    // tab character
 

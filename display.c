@@ -634,8 +634,9 @@ int modeline(WINDOW *wp)
     vtputc('-'); ++n;
     if(vi_mode) {
         vtputc('V');
-    } else
-    {
+    } else if (bp->mode & MDWRAP) {
+        vtputc('W');
+    } else {
         vtputc('E');
     }
     vtputc('-');

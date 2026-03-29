@@ -331,6 +331,9 @@ int fillpara(int f, int n)       // deFault flag and Numeric argument
     LINE *eopline;         // pointer to line just past EOP
     int dotflag;           // was the last char a period?
     char wbuf[NSTRING];    // buffer for current word
+    LINE *save_dotp;       // cursor line before fill
+    int   save_doto;       // cursor offset before fill
+    int   cursor_nonws;    // non-ws chars from BOP to cursor
 
     (void)defaultargs(f,n);
 
@@ -340,6 +343,25 @@ int fillpara(int f, int n)       // deFault flag and Numeric argument
     }
 
     if( isblankline( curwp->dotp ) ) return( TRUE );
+
+    // Save cursor position as count of non-ws chars from paragraph start.
+    // Used to restore after reflow rather than leaving cursor at EOP.
+    save_dotp = curwp->dotp;
+    save_doto  = curwp->doto;
+    gotobop(FALSE, 1);
+    {
+        LINE *lp = curwp->dotp;
+        int   off = 0;      // start from col 0 of BOP line
+        cursor_nonws = 0;
+        while (lp != save_dotp || off < save_doto) {
+            if (lp == curbp->lines) break;
+            if (off >= llength(lp)) { lp = lforw(lp); off = 0; continue; }
+            if (lgetc(lp, off) != ' ' && lgetc(lp, off) != '\t') cursor_nonws++;
+            off++;
+        }
+    }
+    curwp->dotp = save_dotp;    // restore so fill navigation starts correctly
+    curwp->doto = save_doto;
 
     // record the pointer to the line just past the EOP
     gotobol(0,1);
@@ -429,12 +451,17 @@ int fillpara(int f, int n)       // deFault flag and Numeric argument
                 }
             }
             else {
-                /* start a new line */
-                lnewline();
-                clength = 0;
-                if( lmarg > 0 ) {
-                    linsert((lmarg),' ');
-                    clength = lmarg;
+                /* start a new line, or soft-wrap in wrap mode */
+                if (curbp->mode & MDWRAP) {
+                    linsert(1, ' ');
+                    clength++;
+                } else {
+                    lnewline();
+                    clength = 0;
+                    if( lmarg > 0 ) {
+                        linsert((lmarg),' ');
+                        clength = lmarg;
+                    }
                 }
             }
 
@@ -452,8 +479,43 @@ int fillpara(int f, int n)       // deFault flag and Numeric argument
     }
     /* and add a last newline for the end of our new paragraph */
     lnewline();
-    backchar(NULL,1);
+
+    // Restore cursor: go to BOP, walk forward past cursor_nonws non-ws chars
+    gotobop(FALSE, 1);
+    curwp->doto = 0;
+    {
+        int rem = cursor_nonws;
+        while (rem > 0) {
+            if (curwp->doto >= llength(curwp->dotp)) {
+                LINE *nxt = lforw(curwp->dotp);
+                if (nxt == curbp->lines || isblankline(nxt)) break;
+                curwp->dotp = nxt;
+                curwp->doto = 0;
+                continue;
+            }
+            if (lgetc(curwp->dotp, curwp->doto) != ' ' &&
+                lgetc(curwp->dotp, curwp->doto) != '\t')
+                rem--;
+            curwp->doto++;     // advance past the character (including the nth non-ws)
+            if (rem == 0) break;
+        }
+    }
+    curwp->flag |= WFHARD;
     return(TRUE);
+}
+
+int toggle_ww(int f, int n)     // toggle word-wrap (WP) mode for current buffer
+{
+    (void)defaultargs(f, n);
+    if (curbp->mode & MDWRAP) {
+        curbp->mode &= ~MDWRAP;
+        mlwrite("[word-wrap off]");
+    } else {
+        curbp->mode |= MDWRAP;
+        mlwrite("[word-wrap on]");
+    }
+    curwp->flag |= WFMODE;
+    return TRUE;
 }
 
 int killpara(int f, int n)  /* delete n paragraphs starting with the current one */

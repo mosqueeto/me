@@ -174,7 +174,7 @@ Version History:
         respect do_log flag
 */
 
-#define VERSION_NAME "ME2.01"
+#define VERSION_NAME "ME2.02"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -230,6 +230,7 @@ extern  int filesave(int, int);     // Save current file
 extern  int filevisit(int, int);    // Get a file, read only
 extern  int filewrite(int, int);    // Write a file
 extern  int fillpara(int, int);     // fill a paragraph.
+extern  int toggle_ww(int, int);    // toggle word-wrap mode
 extern  int forwchar(int, int);     // Move forward by characters
 extern  int forwdel(int, int);      // Forward delete
 extern  int forwline(int, int);     // Move forward by lines
@@ -507,6 +508,8 @@ META|'u',       upperword,   "upperword",
     "M-u     uppercase word",
 META|'V',       set_vi,      "set_vi 'i' is clr",
     "M-V     set vi(ew) mode",
+META|'W',       toggle_ww,   "toggle_ww",
+    "M-W     toggle word-wrap mode",
 META|'v',       yank,      "paste",
     "M-v     paste cut text",
 META|'w',       copyregion,  "copyregion",
@@ -848,13 +851,14 @@ int execute(int c, int f, int n)
         }
         thisflag = 0;           // For the future.
         status   = linsert(n, c);
-        if(  (c == ' ') && 
-             (rmarg > 0 ) && 
-             (getvcol() > rmarg) &&
-             (lgetc(curwp->dotp, curwp->doto-2) != ' ')
-             ) 
-        {
-            wrapword();
+        if (c == ' ') {
+            if (curbp->mode & MDWRAP) {
+                if (rmarg > 0 && getvcol() > rmarg)
+                    fillpara(FALSE, 1);
+            } else if (rmarg > 0 && getvcol() > rmarg &&
+                       lgetc(curwp->dotp, curwp->doto-2) != ' ') {
+                wrapword();
+            }
         }
         lastflag = thisflag;
         return (status);
