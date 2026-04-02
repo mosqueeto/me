@@ -43,6 +43,8 @@ int wrapword(int f, int n)
     if( i < rmarg ){  /* otherwise the word is the whole line... */
         if (! newline(NULL, 1))
             return(FALSE);
+        if (curbp->mode & MDWRAP)
+            curwp->dotp->bp->flags |= L_SNL;
     }
     if( lmarg > 0 ) linsert(lmarg,' ');
 /*  while( inword()) forwchar(FALSE,1);*/
@@ -451,17 +453,13 @@ int fillpara(int f, int n)       // deFault flag and Numeric argument
                 }
             }
             else {
-                /* start a new line, or soft-wrap in wrap mode */
-                if (curbp->mode & MDWRAP) {
-                    linsert(1, ' ');
-                    clength++;
-                } else {
-                    lnewline();
-                    clength = 0;
-                    if( lmarg > 0 ) {
-                        linsert((lmarg),' ');
-                        clength = lmarg;
-                    }
+                lnewline();
+                if (curbp->mode & MDWRAP)
+                    curwp->dotp->bp->flags |= L_SNL;
+                clength = 0;
+                if( lmarg > 0 ) {
+                    linsert((lmarg),' ');
+                    clength = lmarg;
                 }
             }
 
@@ -509,10 +507,10 @@ int toggle_ww(int f, int n)     // toggle word-wrap (WP) mode for current buffer
     (void)defaultargs(f, n);
     if (curbp->mode & MDWRAP) {
         curbp->mode &= ~MDWRAP;
-        mlwrite("[word-wrap off]");
+        mlwrite("[wrap off]");
     } else {
         curbp->mode |= MDWRAP;
-        mlwrite("[word-wrap on]");
+        mlwrite("[wrap on]");
     }
     curwp->flag |= WFMODE;
     return TRUE;

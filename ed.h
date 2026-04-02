@@ -151,6 +151,8 @@ typedef struct  LINE {
     // for this line.  The allocated size is 0, in this case
 #define L_HEAD 0x4
     // line is the dummy header line in a buffer
+#define L_SNL  0x8
+    // modifier for L_NL: soft newline -- file output writes ' ' not '\n'
 
 //#define lforw(lp)       (((lp)->fp->flags && L_HEAD)?(lp):(lp)->fp)
 #define lforw(lp)       ((lp)->fp)

@@ -882,8 +882,11 @@ int writeout(BYTE *fn, int update)
         lp = lforw(curbp->lines);       // First line.
         nline = 0;                      // Number of lines.
         while (lp != curbp->lines) {
-            s = putline(nfd,&lp->text[0], llength(lp),(lp->flags&L_NL));
-            ++nline;
+            int has_nl = lp->flags & L_NL;
+            int snl    = lp->flags & L_SNL;
+            s = putline(nfd, &lp->text[0], llength(lp), has_nl && !snl);
+            if (has_nl && snl) s = putline(nfd, " ", 1, 0);
+            if (has_nl && !snl) ++nline;
             lp = lforw(lp);
         }
         s = putline(nfd,NULL,0,0);  // flushes the buffer

@@ -174,7 +174,7 @@ Version History:
         respect do_log flag
 */
 
-#define VERSION_NAME "ME2.02"
+#define VERSION_NAME "ME2.03"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -851,13 +851,49 @@ int execute(int c, int f, int n)
         }
         thisflag = 0;           // For the future.
         status   = linsert(n, c);
-        if (c == ' ') {
+        if (c == ' ' && rmarg > 0) {
+            /* check end of line against margin, not cursor position --
+               a space inserted mid-line can push the last word past rmarg */
+            int saved_doto = curwp->doto;
+            curwp->doto = llength(curwp->dotp);
+            int over = getvcol() > rmarg;
             if (curbp->mode & MDWRAP) {
-                if (rmarg > 0 && getvcol() > rmarg)
+                curwp->doto = saved_doto;   // fillpara counts cursor_nonws from here
+                if (over) {
                     fillpara(FALSE, 1);
-            } else if (rmarg > 0 && getvcol() > rmarg &&
-                       lgetc(curwp->dotp, curwp->doto-2) != ' ') {
-                wrapword();
+                    /* fillpara consumed the typed space as a word separator.
+                       cursor_nonws restoration leaves cursor AT the space, not
+                       after it.  If a space is already there (mid-line reflow),
+                       step past it; otherwise re-insert it. */
+                    if (curwp->doto < llength(curwp->dotp) &&
+                        lgetc(curwp->dotp, curwp->doto) == ' ')
+                        curwp->doto++;
+                    else
+                        linsert(1, ' ');
+                    /* fillpara also strips the trailing space from the last
+                       soft line (consumed as word separator).  Re-add it so
+                       the paragraph end is ready for continued typing. */
+                    {
+                        LINE *save2 = curwp->dotp;
+                        int   off2  = curwp->doto;
+                        LINE *lp    = save2;
+                        while (!(lp->flags & L_HEAD) && (lp->flags & L_SNL))
+                            lp = lforw(lp);
+                        int n = llength(lp);
+                        if (n == 0 || lgetc(lp, n-1) != ' ') {
+                            curwp->dotp = lp;
+                            curwp->doto = n;
+                            linsert(1, ' ');
+                        }
+                        curwp->dotp = save2;
+                        curwp->doto = off2;
+                    }
+                }
+            } else {
+                if (over)
+                    wrapword();             // cursor at EOL -- wraps last word
+                else
+                    curwp->doto = saved_doto;
             }
         }
         lastflag = thisflag;
