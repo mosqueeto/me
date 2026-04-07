@@ -432,10 +432,15 @@ int gotobop(int f, int n)
 
     while (n-- > 0) {
 
-        // first scan back until we are in a word
-        suc = backchar(FALSE, 1);
-        while (!inword() && suc) {
+        // first scan back until we are in a word --
+        // but skip this if already at BOL with a paragraph boundary behind us
+        if (!(curwp->doto == 0 &&
+              (lback(curwp->dotp) == curbp->lines ||
+               is_para_boundary(lback(curwp->dotp))))) {
             suc = backchar(FALSE, 1);
+            while (!inword() && suc) {
+                suc = backchar(FALSE, 1);
+            }
         }
         curwp->doto = 0;  // go to the BOL and scan back
         while( lback(curwp->dotp) != curbp->lines ) {

@@ -230,6 +230,7 @@ extern  int filesave(int, int);     // Save current file
 extern  int filevisit(int, int);    // Get a file, read only
 extern  int filewrite(int, int);    // Write a file
 extern  int fillpara(int, int);     // fill a paragraph.
+extern  int fillbuf(int, int);      // fill all paragraphs in buffer.
 extern  int toggle_ww(int, int);    // toggle word-wrap mode
 extern  int forwchar(int, int);     // Move forward by characters
 extern  int forwdel(int, int);      // Forward delete
@@ -500,6 +501,8 @@ META|'p',       pack,        "pack",
     "M-p     pack buffer",
 META|'q',       fillpara,    "fillpara",
     "M-q     fill paragraph",
+META|'Q',       fillbuf,     "fillbuf",
+    "M-Q     fill all paragraphs in buffer",
 META|'r',       qreplace,    "qreplace",
     "M-r     query replace",
 META|'s',       setvar,      "setvar",
@@ -561,6 +564,7 @@ BYTE log_buf[256];
 BYTE rc_dir[NFILEN-20];
 BYTE kbm_file[NFILEN];
 int running_macro_flag = 0;
+int default_mode       = 0;    // mode flags applied to every new buffer (-w etc.)
 BYTE *help_txt;
 
 void sig_handler(int i)
@@ -614,7 +618,7 @@ logit("\n");
 
     strcpy((char *)bname, "main");  // name of the default buffer.
 
-    while( (c = getopt(argc,argv,"+hvVD:m:o:n:f:M")) > 0 ){
+    while( (c = getopt(argc,argv,"+hvVD:o:n:f:mMw")) > 0 ){
         switch (c) {
         case 'h':
             usage();
@@ -630,8 +634,14 @@ logit("\n");
             printf("Version %s\n",version);
             exit(0);
             break;
-        case 'M': // start with mouse reporting disabled
+        case 'm': // enable mouse reporting
+            mouse_enabled = 1;
+            break;
+        case 'M': // (legacy) mouse off -- now the default, kept for compat
             mouse_enabled = 0;
+            break;
+        case 'w': // wrap mode on for all buffers
+            default_mode |= MDWRAP;
             break;
         default:
             usage();
@@ -1220,12 +1230,12 @@ int usage()
 {
     printf("\
 me [options] file1 file2 ...\n\
-    h   help\n\
-    v   v mode (vi / view)\n\
-    V   print version and exit\n\
-    D <level> set debug level \n\
-    M   start with mouse reporting off\n\
-    f\n\
+    -h        help\n\
+    -v        vi/view mode\n\
+    -V        print version and exit\n\
+    -w        wrap mode on for all buffers\n\
+    -m        enable mouse reporting\n\
+    -D <n>    set debug level\n\
 ");
     exit(0);
 }

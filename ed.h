@@ -280,8 +280,11 @@ extern  BYTE *fnames[];     // input filenames
 extern  int dot_macro_flag; // in dot macro
 extern  int text_chg_flag;  // record text changes outside macros
 extern  int vi_mode;       // are we in vi mode?
+extern  int mouse_enabled; // 1 if mouse reporting is active
 #endif
 
+extern  int fillpara(int, int); // fill/reflow paragraph
+extern  int default_mode;       // mode flags applied to every new buffer
 extern  int mpresf;         // Stuff in message line
 extern  TERM    term;       // Terminal information.
 extern  BUFFER  *bfind(BYTE *, int, int);   // Lookup a buffer by name

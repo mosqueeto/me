@@ -363,7 +363,7 @@ BUFFER *bfind(BYTE *bname, int cflag, int bflag)
         lp->flags = L_HEAD;
         bp->bufp  = bheadp;
         bheadp = bp;
-        bp->mode = MDMAGIC;
+        bp->mode = MDMAGIC | (bflag & BFTEMP ? 0 : default_mode);
         bp->dotp  = lp;
         bp->doto  = 0;
         bp->markp = NULL;

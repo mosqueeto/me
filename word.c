@@ -502,6 +502,51 @@ int fillpara(int f, int n)       // deFault flag and Numeric argument
     return(TRUE);
 }
 
+/* Fill every paragraph in the buffer.  Useful after opening a file that was
+   saved in wrap mode (long lines) and setting the right margin. */
+int fillbuf(int f, int n)
+{
+    LINE *save_dotp;
+    int   save_doto;
+    int   nfilled = 0;
+
+    (void)defaultargs(f, n);
+
+    if (rmarg <= lmarg) {
+        mlwrite("Fill column not set");
+        return FALSE;
+    }
+
+    save_dotp = curwp->dotp;
+    save_doto  = curwp->doto;
+
+    // start from the top of the buffer
+    curwp->dotp = lforw(curbp->lines);
+    curwp->doto = 0;
+
+    while (curwp->dotp != curbp->lines) {
+        // skip blank lines between paragraphs
+        while (curwp->dotp != curbp->lines && isblankline(curwp->dotp))
+            curwp->dotp = lforw(curwp->dotp);
+        if (curwp->dotp == curbp->lines) break;
+
+        fillpara(FALSE, 1);
+        nfilled++;
+
+        // advance past the paragraph we just filled
+        gotoeop(FALSE, 1);
+        if (curwp->dotp != curbp->lines)
+            curwp->dotp = lforw(curwp->dotp);
+        curwp->doto = 0;
+    }
+
+    curwp->dotp = save_dotp;
+    curwp->doto = save_doto;
+    curwp->flag |= WFHARD;
+    mlwrite("[filled %d paragraph%s]", nfilled, nfilled == 1 ? "" : "s");
+    return TRUE;
+}
+
 int toggle_ww(int f, int n)     // toggle word-wrap (WP) mode for current buffer
 {
     (void)defaultargs(f, n);

@@ -7,7 +7,7 @@ extern int backline(int, int);
 extern int forwline(int, int);
 
 int mouse_selecting = 0;   /* 1 while a mouse-defined region is highlighted */
-int mouse_enabled   = 1;   /* 1 while terminal mouse reporting is active     */
+int mouse_enabled   = 0;   /* 1 while terminal mouse reporting is active     */
 
 static int   dragging = 0; /* 1 while the left button is physically held   */
 static LINE *press_lp = NULL;

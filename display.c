@@ -632,13 +632,9 @@ int modeline(WINDOW *wp)
         ++n;
     }
     vtputc('-'); ++n;
-    if(vi_mode) {
-        vtputc('V');
-    } else if (bp->mode & MDWRAP) {
-        vtputc('W');
-    } else {
-        vtputc('E');
-    }
+    if (mouse_enabled)    { vtputc('M'); ++n; }
+    if (vi_mode)          { vtputc('V'); ++n; }
+    if (bp->mode & MDWRAP){ vtputc('W'); ++n; }
     vtputc('-');
     vtputc(' '); ++n;
     

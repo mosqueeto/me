@@ -620,10 +620,21 @@ int indent(int f, int n)
  * loss of text if typed with a big argument.
  * Normally bound to "C-D".
  */
+/* In MDWRAP mode, reflow the paragraph after a deletion if the cursor is
+   on or adjacent to a soft-wrapped line. */
+static void wrap_reflow_after_del(void)
+{
+    if ((curbp->mode & MDWRAP) && rmarg > 0 &&
+        ((curwp->dotp->flags & L_SNL) ||
+         (lback(curwp->dotp)->flags & L_SNL)))
+        fillpara(FALSE, 1);
+}
+
 int forwdel(int f, int n)
 {
+    int s;
     (void)defaultargs(f,n);
-    
+
     if (n < 0)
         return (backdel(f, -n));
     if (f != FALSE) {           /* Really a kill.   */
@@ -631,7 +642,9 @@ int forwdel(int f, int n)
             kdelete();
         thisflag |= CFKILL;
     }
-    return (ldelete(n, f));
+    s = ldelete(n, f);
+    wrap_reflow_after_del();
+    return (s);
 }
 
 /*
@@ -647,7 +660,7 @@ int backdel(int f, int n)
     register int    s;
 
     (void)defaultargs(f,n);
-    
+
     if (n < 0)
         return (forwdel(f, -n));
     if (f != FALSE) {           /* Really a kill.   */
@@ -657,6 +670,7 @@ int backdel(int f, int n)
     }
     if ((s=backchar(f, n)) == TRUE)
         s = ldelete(n, f);
+    wrap_reflow_after_del();
     return (s);
 }
 
