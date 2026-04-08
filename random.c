@@ -624,10 +624,20 @@ int indent(int f, int n)
    on or adjacent to a soft-wrapped line. */
 static void wrap_reflow_after_del(void)
 {
-    if ((curbp->mode & MDWRAP) && rmarg > 0 &&
-        ((curwp->dotp->flags & L_SNL) ||
-         (lback(curwp->dotp)->flags & L_SNL)))
-        fillpara(FALSE, 1);
+    LINE *cur = curwp->dotp;
+    int   pos = curwp->doto;
+
+    if (!((curbp->mode & MDWRAP) && rmarg > 0)) return;
+    if (!((cur->flags & L_SNL) || (lback(cur)->flags & L_SNL))) return;
+
+    /* Deleting the first char of a word creates a double space at the cursor.
+       Skip fillpara to avoid the extra cursor jump; the double space will be
+       normalized on the next auto-wrap or M-q. */
+    if (pos > 0 && pos < llength(cur) &&
+        lgetc(cur, pos-1) == ' ' && lgetc(cur, pos) == ' ')
+        return;
+
+    fillpara(FALSE, 1);
 }
 
 int forwdel(int f, int n)

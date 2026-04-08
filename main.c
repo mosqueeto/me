@@ -174,7 +174,7 @@ Version History:
         respect do_log flag
 */
 
-#define VERSION_NAME "ME2.04"
+#define VERSION_NAME "ME2.05"
 
 #include <stdio.h>
 #include <stdlib.h>
