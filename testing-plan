@@ -1,0 +1,49 @@
+Wrap mode testing plan
+======================
+
+Basic insert wrap
+-----------------
+- Type into a paragraph until a line overflows — cursor should stay put, text wraps right
+- Type in the middle of a line (not at end) — same guarantee
+- Type where the only space is before the cursor — no wrap should happen, line goes over-long
+- Type a very long word with no spaces — same, line stays over-long until M-q
+
+Basic delete pull-up
+--------------------
+- Delete chars from the front of a line — next line's first word should flow up
+- Delete enough to absorb multiple words — should keep pulling until line is full
+- Delete until a continuation line empties entirely — that line should disappear cleanly
+- Delete at position 0 (backspace at BOL) — joins with previous line, then wrap_delete runs
+
+Cascade in both directions
+--------------------------
+- A paragraph with 4+ soft lines: insert in line 1 and verify lines 2, 3, 4 reflow consistently
+- Delete in line 1 and verify that words flow up through all subsequent lines
+- Delete enough to collapse multiple continuation lines into one
+
+L_SNL flag integrity (the ldelnewline fix)
+------------------------------------------
+- C-D at the end of a soft-wrapped line (deletes the soft newline, joining with continuation)
+  — result should have correct L_SNL
+- Backspace at position 0 of a continuation line — same
+- After join, further typing or deletion should still trigger wrap correctly
+
+Interaction with M-q / M-Q
+---------------------------
+- Type sloppily (multiple spaces, uneven lines), then M-q — should fully reflow
+- M-Q on a buffer with mixed wrap/non-wrap paragraphs
+- M-q after a series of inserts and deletes — should normalize any over-long lines
+- M-Q on a file opened with 'me -w <file>' after deletions — should not crash (fillbuf
+  dangling pointer fix)
+
+Edge cases
+----------
+- Single-word paragraph that overflows rmarg (unbreakable) — should not crash or corrupt
+- Paragraph at end of buffer with no trailing blank line
+- Wrap with a non-zero left margin (lmarg set)
+- Kill/yank (C-w / C-y) within a wrapped paragraph — then verify wrap state is consistent
+
+File save/reload
+----------------
+- Write a wrapped buffer, reload it — soft newlines should be stored as spaces and reload
+  as one long line (or vice versa depending on how file.c handles L_SNL on read)

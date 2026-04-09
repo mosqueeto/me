@@ -486,21 +486,24 @@ ldelnewline()
         return (FALSE);
     }
 
-    // Blank second line.  free it, and link in successor
+    // Blank second line.  free it; lp1 inherits lp2's L_SNL.
     if( lp2->used == 0 ) {
+        int snl2 = lp2->flags & L_SNL;
         lfree(lp2);
-		return( TRUE );
-	}
+        lp1->flags = (lp1->flags & ~L_SNL) | snl2;
+        return( TRUE );
+    }
 
-    // Blank first line.  free it, and link in successor
+    // Blank first line.  free it; lp2 survives with its flags intact.
     if( lp1->used == 0 ) {
         lfree(lp1);
-		return( TRUE );
-	}
+        return( TRUE );
+    }
 
     // neither is blank.  insert a new line with enough room
     // for all the text just before the current line, insert the text,
-    // and free the old lines
+    // and free the old lines.  The merged line inherits lp2's NL/SNL flags.
+    int flags2 = lp2->flags;
     lp3 = ladd(lp1, lp1->used + lp2->used + LEXTRA );
     curwp->dotp = lp3;
     curwp->doto = lp1->used;
@@ -508,6 +511,7 @@ ldelnewline()
     for( j=0; j<lp1->used; j++ ) lp3->text[i++] = lp1->text[j];
     for( j=0; j<lp2->used; j++ ) lp3->text[i++] = lp2->text[j];
     lp3->used = lp1->used + lp2->used;
+    lp3->flags = L_NL | (flags2 & L_SNL);
     lfree(lp1);
     lfree(lp2);
 

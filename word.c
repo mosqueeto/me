@@ -331,7 +331,6 @@ int fillpara(int f, int n)       // deFault flag and Numeric argument
     int eopflag;           // Are we at the End-Of-Paragraph?
     int firstflag;         // first word? (needs no space)
     LINE *eopline;         // pointer to line just past EOP
-    int dotflag;           // was the last char a period?
     char wbuf[NSTRING];    // buffer for current word
     LINE *save_dotp;       // cursor line before fill
     int   save_doto;       // cursor offset before fill
@@ -384,8 +383,6 @@ int fillpara(int f, int n)       // deFault flag and Numeric argument
     curwp->doto = 0;
     clength = curwp->doto;
     wordlen = 0;
-    dotflag = FALSE;
-
     /* scan through lines, filling words */
     firstflag = TRUE;
     eopflag = FALSE;
@@ -414,7 +411,6 @@ int fillpara(int f, int n)       // deFault flag and Numeric argument
 
         /* if not a separator, just add it in */
         if (c != ' ' && c != '\t') {
-            dotflag = (c == '.');   // was it a dot
             if( wordlen >= NSTRING-1 ) { // word too big -- output it and reset
                 lnewline();              // always a new line -- it's BIG
                 clength = 0;
@@ -468,10 +464,6 @@ int fillpara(int f, int n)       // deFault flag and Numeric argument
                 linsert(1, wbuf[i]);
                 ++clength;
             }
-            if (dotflag) {
-                linsert(1, ' ');
-                ++clength;
-            }
             wordlen = 0;
         }
     }
@@ -506,9 +498,8 @@ int fillpara(int f, int n)       // deFault flag and Numeric argument
    saved in wrap mode (long lines) and setting the right margin. */
 int fillbuf(int f, int n)
 {
-    LINE *save_dotp;
-    int   save_doto;
     int   nfilled = 0;
+    int   cursor_nonws = 0;
 
     (void)defaultargs(f, n);
 
@@ -517,15 +508,26 @@ int fillbuf(int f, int n)
         return FALSE;
     }
 
-    save_dotp = curwp->dotp;
-    save_doto  = curwp->doto;
+    // Count non-ws chars from BOB to cursor.  fillpara frees all lines it
+    // processes, so a saved line pointer would dangle.  Track position as a
+    // character count instead (same technique fillpara uses within a paragraph).
+    {
+        LINE *lp  = lforw(curbp->lines);
+        LINE *cdp = curwp->dotp;
+        int   cdo = curwp->doto;
+        int   off = 0;
+        while (lp != curbp->lines && (lp != cdp || off < cdo)) {
+            if (off >= llength(lp)) { lp = lforw(lp); off = 0; continue; }
+            if (lgetc(lp, off) != ' ' && lgetc(lp, off) != '\t') cursor_nonws++;
+            off++;
+        }
+    }
 
-    // start from the top of the buffer
+    // fill every paragraph from the top
     curwp->dotp = lforw(curbp->lines);
     curwp->doto = 0;
 
     while (curwp->dotp != curbp->lines) {
-        // skip blank lines between paragraphs
         while (curwp->dotp != curbp->lines && isblankline(curwp->dotp))
             curwp->dotp = lforw(curwp->dotp);
         if (curwp->dotp == curbp->lines) break;
@@ -533,15 +535,31 @@ int fillbuf(int f, int n)
         fillpara(FALSE, 1);
         nfilled++;
 
-        // advance past the paragraph we just filled
         gotoeop(FALSE, 1);
         if (curwp->dotp != curbp->lines)
             curwp->dotp = lforw(curwp->dotp);
         curwp->doto = 0;
     }
 
-    curwp->dotp = save_dotp;
-    curwp->doto = save_doto;
+    // Restore cursor: walk from BOB counting cursor_nonws non-ws chars
+    curwp->dotp = lforw(curbp->lines);
+    curwp->doto = 0;
+    {
+        int rem = cursor_nonws;
+        while (rem > 0 && curwp->dotp != curbp->lines) {
+            if (curwp->doto >= llength(curwp->dotp)) {
+                curwp->dotp = lforw(curwp->dotp);
+                curwp->doto = 0;
+                continue;
+            }
+            if (lgetc(curwp->dotp, curwp->doto) != ' ' &&
+                lgetc(curwp->dotp, curwp->doto) != '\t')
+                rem--;
+            curwp->doto++;
+            if (rem == 0) break;
+        }
+    }
+
     curwp->flag |= WFHARD;
     mlwrite("[filled %d paragraph%s]", nfilled, nfilled == 1 ? "" : "s");
     return TRUE;
@@ -559,6 +577,158 @@ int toggle_ww(int f, int n)     // toggle word-wrap (WP) mode for current buffer
     }
     curwp->flag |= WFMODE;
     return TRUE;
+}
+
+/* Split lp at position brk (a space).  The space is consumed and lp is
+   trimmed to [0..brk-1].  The tail (chars after brk) is either prepended
+   to the existing continuation line (when lp had L_SNL) or used to create
+   a new continuation line (when lp was a hard-ended line).  Saves and
+   restores the window cursor. */
+static void wrap_split(LINE *lp, int brk)
+{
+    int len      = llength(lp);
+    int tail_len = len - brk - 1;
+    int had_snl  = lp->flags & L_SNL;
+    int i;
+
+    // Copy tail before modifying lp
+    char tail[NSTRING];
+    for (i = 0; i < tail_len && i < NSTRING-1; i++)
+        tail[i] = lp->text[brk + 1 + i];
+
+    LINE *save_dotp = curwp->dotp;
+    int   save_doto = curwp->doto;
+
+    // Trim lp: delete the space at brk plus everything after it
+    curwp->dotp = lp;
+    curwp->doto = brk;
+    ldelete(len - brk, FALSE);
+    if (had_snl || tail_len > 0)
+        lp->flags |= L_SNL;
+
+    if (had_snl) {
+        // Prepend tail to the existing continuation line
+        LINE *next    = lforw(lp);
+        int next_orig = llength(next);
+        curwp->dotp   = next;
+        curwp->doto   = 0;
+        for (i = 0; i < tail_len; i++)
+            linsert(1, tail[i]);
+        if (tail_len > 0 && next_orig > 0)
+            linsert(1, ' ');    // separator between tail and existing content
+    } else if (tail_len > 0) {
+        // Create a new continuation line with the tail
+        curwp->dotp = lp;
+        curwp->doto = brk;     // EOL of lp (lp->used == brk now)
+        lnewline();            // new empty line; cursor on it at offset 0
+        for (i = 0; i < tail_len; i++)
+            linsert(1, tail[i]);
+        // new line flags: L_NL only (no L_SNL — it's the new paragraph end)
+    }
+
+    curwp->dotp = save_dotp;
+    curwp->doto = save_doto;
+}
+
+/* After inserting a space that pushes the line over rmarg in MDWRAP mode,
+   split the line at the rightmost space at or after the cursor so the cursor
+   never moves.  Cascades into continuation lines if needed. */
+void wrap_insert(void)
+{
+    LINE *lp     = curwp->dotp;
+    int   cursor = curwp->doto;
+    int   len    = llength(lp);
+    int   end    = (rmarg < len - 1) ? rmarg : len - 1;
+    int   brk    = -1;
+    int   i;
+
+    for (i = end; i >= cursor; i--) {
+        if (lgetc(lp, i) == ' ') { brk = i; break; }
+    }
+    if (brk < 0) return;   // no valid break at or after cursor; leave over-long
+
+    wrap_split(lp, brk);
+
+    // Cascade: if the continuation line now overflows, split it too.
+    // No cursor constraint on lines below.
+    LINE *cont = lforw(lp);
+    while (cont != curbp->lines && llength(cont) > rmarg) {
+        int len2 = llength(cont);
+        int end2 = (rmarg < len2 - 1) ? rmarg : len2 - 1;
+        int brk2 = -1;
+        for (i = end2; i >= 0; i--) {
+            if (lgetc(cont, i) == ' ') { brk2 = i; break; }
+        }
+        if (brk2 < 0) break;
+        wrap_split(cont, brk2);
+        cont = lforw(cont);
+    }
+
+    curwp->flag |= WFHARD;
+}
+
+/* After deleting a character in MDWRAP mode, pull words up from continuation
+   lines as space permits, then cascade to do the same for subsequent lines.
+   Cursor never moves. */
+void wrap_delete(void)
+{
+    if (!((curbp->mode & MDWRAP) && rmarg > 0)) return;
+
+    LINE *cur    = curwp->dotp;
+    int   cursor = curwp->doto;
+
+    // Walk continuation lines: fill cur from nxt, then advance to the next pair.
+    while (cur->flags & L_SNL) {
+        LINE *nxt = lforw(cur);
+        if (nxt == curbp->lines) break;
+
+        // Pull words from nxt into cur as long as they fit.
+        for (;;) {
+            int cur_len = llength(cur);
+            int nxt_len = llength(nxt);
+
+            // Find first word on nxt (skip any leading spaces)
+            int ws = 0;
+            while (ws < nxt_len && lgetc(nxt, ws) == ' ') ws++;
+            int we = ws;
+            while (we < nxt_len && lgetc(nxt, we) != ' ') we++;
+            int word_len = we - ws;
+            if (word_len == 0) break;
+
+            if (cur_len + 1 + word_len > rmarg) break;
+
+            // Pull: append ' ' + word to cur
+            LINE *save_dotp = curwp->dotp;
+
+            curwp->dotp = cur;
+            curwp->doto = cur_len;
+            linsert(1, ' ');
+            for (int k = ws; k < we; k++)
+                linsert(1, lgetc(nxt, k));
+
+            // Remove word + leading spaces + trailing separator from nxt
+            int del = we;
+            if (del < nxt_len && lgetc(nxt, del) == ' ')
+                del++;
+            curwp->dotp = nxt;
+            curwp->doto = 0;
+            ldelete(del, FALSE);
+
+            curwp->dotp = save_dotp;
+            curwp->doto = cursor;
+
+            if (llength(nxt) == 0) {
+                int snl_nxt = nxt->flags & L_SNL;
+                lfree(nxt);
+                cur->flags = (cur->flags & ~L_SNL) | snl_nxt;
+                break;  // nxt gone; outer loop will advance cur
+            }
+        }
+
+        cur = lforw(cur);   // cascade: now fill cur (old nxt) from its continuation
+    }
+
+    curwp->flag |= WFHARD;
 }
 
 int killpara(int f, int n)  /* delete n paragraphs starting with the current one */

@@ -9,6 +9,7 @@
 #include    <string.h>
 #include    <stdlib.h>
 #include    "ed.h"
+extern void wrap_delete(void);
 
 EVAR    vtab[MAXVARS];
 int lastvar = -1;
@@ -620,26 +621,6 @@ int indent(int f, int n)
  * loss of text if typed with a big argument.
  * Normally bound to "C-D".
  */
-/* In MDWRAP mode, reflow the paragraph after a deletion if the cursor is
-   on or adjacent to a soft-wrapped line. */
-static void wrap_reflow_after_del(void)
-{
-    LINE *cur = curwp->dotp;
-    int   pos = curwp->doto;
-
-    if (!((curbp->mode & MDWRAP) && rmarg > 0)) return;
-    if (!((cur->flags & L_SNL) || (lback(cur)->flags & L_SNL))) return;
-
-    /* Deleting the first char of a word creates a double space at the cursor.
-       Skip fillpara to avoid the extra cursor jump; the double space will be
-       normalized on the next auto-wrap or M-q. */
-    if (pos > 0 && pos < llength(cur) &&
-        lgetc(cur, pos-1) == ' ' && lgetc(cur, pos) == ' ')
-        return;
-
-    fillpara(FALSE, 1);
-}
-
 int forwdel(int f, int n)
 {
     int s;
@@ -653,7 +634,7 @@ int forwdel(int f, int n)
         thisflag |= CFKILL;
     }
     s = ldelete(n, f);
-    wrap_reflow_after_del();
+    wrap_delete();
     return (s);
 }
 
@@ -680,7 +661,7 @@ int backdel(int f, int n)
     }
     if ((s=backchar(f, n)) == TRUE)
         s = ldelete(n, f);
-    wrap_reflow_after_del();
+    wrap_delete();
     return (s);
 }
 

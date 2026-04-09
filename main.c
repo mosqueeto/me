@@ -232,6 +232,8 @@ extern  int filewrite(int, int);    // Write a file
 extern  int fillpara(int, int);     // fill a paragraph.
 extern  int fillbuf(int, int);      // fill all paragraphs in buffer.
 extern  int toggle_ww(int, int);    // toggle word-wrap mode
+extern  void wrap_insert(void);     // local reflow on space insert (MDWRAP)
+extern  void wrap_delete(void);     // local reflow on deletion (MDWRAP)
 extern  int forwchar(int, int);     // Move forward by characters
 extern  int forwdel(int, int);      // Forward delete
 extern  int forwline(int, int);     // Move forward by lines
@@ -867,43 +869,13 @@ int execute(int c, int f, int n)
             int saved_doto = curwp->doto;
             curwp->doto = llength(curwp->dotp);
             int over = getvcol() > rmarg;
+            curwp->doto = saved_doto;
             if (curbp->mode & MDWRAP) {
-                curwp->doto = saved_doto;   // fillpara counts cursor_nonws from here
-                if (over) {
-                    fillpara(FALSE, 1);
-                    /* fillpara consumed the typed space as a word separator.
-                       cursor_nonws restoration leaves cursor AT the space, not
-                       after it.  If a space is already there (mid-line reflow),
-                       step past it; otherwise re-insert it. */
-                    if (curwp->doto < llength(curwp->dotp) &&
-                        lgetc(curwp->dotp, curwp->doto) == ' ')
-                        curwp->doto++;
-                    else
-                        linsert(1, ' ');
-                    /* fillpara also strips the trailing space from the last
-                       soft line (consumed as word separator).  Re-add it so
-                       the paragraph end is ready for continued typing. */
-                    {
-                        LINE *save2 = curwp->dotp;
-                        int   off2  = curwp->doto;
-                        LINE *lp    = save2;
-                        while (!(lp->flags & L_HEAD) && (lp->flags & L_SNL))
-                            lp = lforw(lp);
-                        int n = llength(lp);
-                        if (n == 0 || lgetc(lp, n-1) != ' ') {
-                            curwp->dotp = lp;
-                            curwp->doto = n;
-                            linsert(1, ' ');
-                        }
-                        curwp->dotp = save2;
-                        curwp->doto = off2;
-                    }
-                }
+                if (over)
+                    wrap_insert();
             } else {
                 if (over)
-                    wrapword();             // cursor at EOL -- wraps last word
-                else
-                    curwp->doto = saved_doto;
+                    wrapword();
             }
         }
         lastflag = thisflag;
