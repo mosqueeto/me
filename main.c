@@ -172,9 +172,21 @@ Version History:
         pipe-buffer-through-command (C-X |), ~/.me/macros/ named macro library
 2.01--  per-uid log file (/tmp/log.me.<uid>), mode 0600; logchr/logint now
         respect do_log flag
+2.02--  word-wrap mode (M-W toggle, MDWRAP flag); fillpara-based auto-wrap,
+        wrapword() sets L_NL, M-q joins paragraph to one long line
+2.03--  soft-newline wrap mode (L_SNL flag); auto-wrap fixes, trailing space
+        restoration, wrapword() sets L_SNL, fillpara sets L_SNL on interior lines
+2.04--  gotobop cursor fix, fillbuf (M-Q) for buffer-wide reflow, mode line shows
+        independent M/V/W flags, mouse off by default, -w/-m startup flags
+2.05--  fix wrap-mode deletion cursor jump: skip fillpara when backspace produces
+        double space at cursor (cleaned up on next auto-wrap or M-q)
+2.06--  cursor-stable local reflow: wrap_split/wrap_insert/wrap_delete primitives,
+        ldelnewline/fillbuf fixes, removed fillpara-based auto-wrap
+2.07--  panic-save on shutdown: catch SIGTERM/SIGQUIT in addition to SIGHUP,
+        write ~~<filename> files for all modified buffers
 */
 
-#define VERSION_NAME "ME2.05"
+#define VERSION_NAME "ME2.07"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -666,6 +678,8 @@ logit("\n");
     (void)helpinit();
 
     signal(SIGHUP,sig_handler);
+    signal(SIGTERM,sig_handler);
+    signal(SIGQUIT,sig_handler);
     signal(SIGWINCH,sig_winch);
 
     auto_backup = 0;
