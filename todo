@@ -1,6 +1,12 @@
-add a more complete regular exp interface -- ie, support "s/../../g"
+bugs: 
+pipe buffer through command clears buffer
+    message line shows "pipe: ld bytes" instead of anything useful
+macro example: bind M-r pandoc -f markdown -t plain @render doesn't produce 
+a buffer named render that we can do anything with (not in list-buffers) 
+however, if I try to use buffer "render" (M-b) it says it is a reserved name.
 
-enhanced esc-q (wrap paragraph): if beginning of paragraph begins w/ 1-4 
-spaces, indent the first line by 4 spaces (actually, by tab size); 5-8 
-spaces, first line by two tab stops and rest of lines by one tab stop, and 
-so on.
+can we fix the 8-bit ascii display? do I want to? can we instead add a
+command to change some bytes with high bit set to nearest 7-bit ascii
+equivalent? (internal table of equivalents. there are probably fewer than 10 
+cases that matter)
+
