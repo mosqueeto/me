@@ -4,6 +4,7 @@ The routines in this file handle the "file" abstraction.
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 #include "ed.h"
 #include "crypt.h"
 #include <sys/types.h>
@@ -70,11 +71,17 @@ encrypt_buf(BYTE *pw, BYTE *buf, int *bz)
     for( i=0;i<8;i++ )              // 1 block
         *nbp++ = '\0';
     
-    // set up random IV from clock
-    iv.t = (long)time(0);
-    md5 = md5string(iv.s,4);
-    for( i=0;i<8;i++ )              // 1 block
-        *nbp++ = md5[i]; 
+    // set up random IV from /dev/urandom
+    {
+        int rfd = open("/dev/urandom", O_RDONLY);
+        if (rfd < 0 || read(rfd, nbp, BLOCKZ) != BLOCKZ) {
+            iv.t = (long)time(0);
+            md5 = md5string(iv.s, 4);
+            for (i = 0; i < BLOCKZ; i++) nbp[i] = md5[i % 16];
+        }
+        if (rfd >= 0) close(rfd);
+    }
+    nbp += BLOCKZ;
 
     // trailing unaligned bytes out to block boundary
     extra = (*bz)%8;        // bytes past last block boundary
@@ -125,35 +132,42 @@ BYTE *
 decrypt_buf(BYTE *pw, BYTE *buf, long *bz)
 {
     BYTE *nb;
-    int nbx;
-    BYTE md5[2*BLOCKZ];
+    BYTE *computed_md5;
+    BYTE stored_md5[16];
     BYTE tmp[2*BLOCKZ];
-    int i,j,k,pad_size;
+    int nbx, i, j, k, pad_size;
     Blowfish_Key kk;
 
-    // assumption is that it is buffer of data in the encrypted format,
-    // which means that it is aligned to a block boundary.
+    nb = (BYTE *)malloc(*bz);
+    if (!nb) return NULL;
 
-    // allocate a new buffer.
-    nb = (BYTE *)malloc(*bz); // leaves slop at end, generally
-
-    memcpy((char *)md5,(char *)&buf[8],16); // save the md5
-    
-
-    // decrypt to the new buffer...
+    memcpy(stored_md5, &buf[8], 16);
 
     Blowfish_ExpandUserKey((BYTE *)pw, strlen((char *)pw), kk);
 
     nbx = 0;
-    for( i=40; i<*bz;i+=BLOCKZ ) {
-        Blowfish_Decrypt(&buf[i],&nb[nbx],kk); // decrypt next blk
-        for( j=0,k=i-8; j<BLOCKZ; j++,k++ ) // xor in prev blk
+    for (i = 40; i < *bz; i += BLOCKZ) {
+        Blowfish_Decrypt(&buf[i], &nb[nbx], kk);
+        for (j = 0, k = i - 8; j < BLOCKZ; j++, k++)
             nb[nbx++] ^= buf[k];
     }
 
-    // calculate new buffer size from pad
     pad_size = nb[nbx - 1];
+    if (pad_size >= BLOCKZ) {   /* valid range is 0..BLOCKZ-1 */
+        free(nb);
+        return NULL;
+    }
     *bz = (nbx - BLOCKZ - pad_size);
+    if (*bz <= 0) {
+        free(nb);
+        return NULL;
+    }
+
+    computed_md5 = md5string(nb, *bz);
+    if (memcmp(computed_md5, stored_md5, 16) != 0) {
+        free(nb);
+        return NULL;
+    }
     return nb;
 }
 

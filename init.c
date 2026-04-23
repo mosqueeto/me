@@ -38,6 +38,7 @@
 
 USER_KEY user_keys[NUSER_KEYS];
 int      n_user_keys = 0;
+BYTE     init_warning[NLINE] = "";
 
 /* ------------------------------------------------------------------ */
 /* Key name parser                                                      */
@@ -155,7 +156,7 @@ write_buffer_to_fd(BUFFER *bp, int fd)
  * Replace buffer bp's contents with the bytes in data[0..len-1].
  * Does not prompt for confirmation — caller is responsible.
  */
-static void
+void
 load_bytes_into_buffer(BUFFER *bp, BYTE *data, long len)
 {
     BYTE   *p = data;
@@ -277,12 +278,15 @@ do_pipe(BUFFER *src, const char *cmd, BUFFER *dst)
     }
 
     if (pid == 0) {
-        /* Child: stdin from temp file, stdout to pipe */
+        /* Child: stdin from temp file, stdout to pipe, stderr suppressed */
         int in_fd = open(tmpfile, O_RDONLY);
         if (in_fd < 0) _exit(1);
+        int null_fd = open("/dev/null", O_WRONLY);
         dup2(in_fd, 0);
         dup2(out_pipe[1], 1);
+        if (null_fd >= 0) dup2(null_fd, 2);
         close(in_fd);
+        if (null_fd >= 0) close(null_fd);
         close(out_pipe[0]);
         close(out_pipe[1]);
         execl("/bin/sh", "sh", "-c", cmd, (char *)NULL);
@@ -328,7 +332,7 @@ do_pipe(BUFFER *src, const char *cmd, BUFFER *dst)
 
     load_bytes_into_buffer(dst, out_buf, out_len);
     free(out_buf);
-    mlwrite("[pipe: %ld bytes]", out_len);
+    mlwrite("[pipe: %D bytes]", out_len);
     return TRUE;
 }
 
@@ -350,7 +354,7 @@ pipe_interactive(int f, int n)
 
     dest_name = extract_dest_buffer(cmd);
     if (dest_name && *dest_name) {
-        dst = bfind((BYTE *)dest_name, TRUE, BFTEMP);
+        dst = bfind((BYTE *)dest_name, TRUE, 0);
         if (!dst) {
             mlwrite("pipe: can't create buffer %s", dest_name);
             return FALSE;
@@ -395,8 +399,11 @@ user_execute(int c, int f, int n)
             cmd[NLINE - 1] = '\0';
             dest_name = extract_dest_buffer(cmd);
             if (dest_name && *dest_name) {
-                dst = bfind((BYTE *)dest_name, TRUE, BFTEMP);
-                if (!dst) dst = curbp;
+                dst = bfind((BYTE *)dest_name, TRUE, 0);
+                if (!dst) {
+                    mlwrite("pipe: can't create buffer %s", dest_name);
+                    return FALSE;
+                }
             } else {
                 dst = curbp;
             }
@@ -579,6 +586,19 @@ read_init_file(BYTE *rc_dir)
 
             keycode = parse_keyname(keystr);
             if (keycode < 0) continue;  /* unrecognised key name */
+
+            /* warn once if this key already has a built-in binding */
+            if (!init_warning[0]) {
+                KEYTAB *ktp = keytab;
+                while (ktp->k_code != 0) {
+                    if (ktp->k_code == keycode && ktp->name) {
+                        snprintf((char *)init_warning, NLINE,
+                            "init: %.12s shadows built-in '%.32s'", keystr, ktp->name);
+                        break;
+                    }
+                    ++ktp;
+                }
+            }
 
             if (rest[0] == '|') {
                 /* pipe command */

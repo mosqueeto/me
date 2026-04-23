@@ -390,9 +390,6 @@ int do_read(BUFFER *bp, BYTE fname[], long *nlines, long *filesize)
     BYTE *decrypted_buf;
     BYTE *nlp;
     BYTE *p;
-    BYTE md5[16];
-    BYTE chk[16];
-    BYTE *d;
     long fz;
     long bz = 0;
     long rlen,len;
@@ -438,7 +435,6 @@ logit(fname);
     // if it is an encrypted file, try to decrypt it
     if( fz >= 48 && ! strncmp( (char *)file_buf,ME_MAGIC,strlen(ME_MAGIC) ) ) {
 #if CRYPT_S
-        for( i=0,j=8;i<16;i++,j++ ) md5[i] = file_buf[j];
         p = NULL;
         p = getpw(0);
         if( ! p ) return status;
@@ -446,17 +442,9 @@ logit(fname);
         decrypted_buf = decrypt_buf(p,file_buf,&bz);
         free(file_buf);
 
-        if( bz <= 0 ) {
+        if( !decrypted_buf || bz <= 0 ) {
             mlwrite("file cannot be decrypted");
             return status;
-        }
-
-        d = md5string(decrypted_buf,bz);
-        for( i=0;i<16;i++ ) {
-            if( d[i] != md5[i] ) {
-                mlwrite("file cannot be decrypted.");
-                return status;
-            }
         }
         file_buf = decrypted_buf;
 #else

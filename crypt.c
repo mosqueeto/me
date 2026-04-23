@@ -1,229 +1,167 @@
+/*
+ * crypt.c -- standalone ME file encrypt/decrypt utility.
+ *
+ * Uses the same Blowfish CBC format as the ME editor (magic #ME1.42$),
+ * so files encrypted here can be opened directly in me, and vice versa.
+ *
+ * Usage: crypt [-d] [-p password] [infile [outfile]]
+ *   -d          decrypt (default: encrypt)
+ *   -p password supply password on command line (insecure; omit to be prompted)
+ *   infile      input  file (default: stdin)
+ *   outfile     output file (default: stdout)
+ */
 #include <stdio.h>
-#include <unistd.h>
+#include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <termios.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include "ed.h"
 #include "crypt.h"
 
+extern BYTE *encrypt_buf(BYTE *, BYTE *, int *);
+extern BYTE *decrypt_buf(BYTE *, BYTE *, long *);
 
-// must be a multiple of 8 bytes -- 32 is about the minimum that will
-// work at all (useful for testing).
-//#define BZ 32 
-#define BZ 32768
-
-int
-die(char *s)
+static void
+die(const char *s)
 {
-	fprintf(stderr,"crypt: %s\n",s	);
-	exit(-1);
+    fprintf(stderr, "crypt: %s\n", s);
+    exit(1);
 }
 
-
-// The following two routines use blowfish in CBC mode.
-// The padding at the end of the file adds some complexity
-// to the buffer bookkeeping:  the final block of the plaintext
-// is padded out with 0's, and another block is added, all 0's
-// except the last byte, which contains the number of 0's added to
-// the final block.
-// 
-
-int
-encrypt(char *pw,int in,int out)
+static void
+usage(void)
 {
-	Blowfish_Key kk;
-	unsigned char buf[BZ+16];
-	unsigned char t[8];
-	int r,i,j,k,m,n,o,pad_size,done;
-
-	Blowfish_ExpandUserKey(pw, strlen(pw), kk);
-
-	// set up random IV
-	r = open("/dev/urandom",O_RDONLY);
-	n = read(r,buf,8);
-	if( n<8 ) die("couldn't get IV");
-	close(r);
-
-	done = 0;
-	o = 0;
-	while( ! done ) {
-		n = read(in,&buf[8],BZ);
-		m = n + 8; // account for IV offset
-
-		// if at end, pad to 8 byte boundary
-		if( n < BZ ) {
-			pad_size = (8 - (n%8))%8;
-			for( ;m<n+8+pad_size+7;m++ ) buf[m]='\0';
-			buf[m++] = pad_size;
-			done = 1;
-		}
-
-		// (m always ends at an 8-byte boundary)
-
-		// core CBC
-		for(i=8;i<m;i+=8) {  // account for offset
-			for(j=i,k=i-8;j<i+8;j++,k++) buf[j] ^= buf[k];
-			Blowfish_Encrypt(&buf[i],t,kk);
-			for( j=i,k=0;k<8;j++,k++ ) buf[j] = t[k];
-		}
-
-		n = write(out,&buf[o],m - o);
-		if( n != m - o ) die("write error 1");
-
-		// copy last enc block to be IV for next buffer
-		for(j=0,k=i-8;j<8;j++,k++ ) buf[j] = buf[k];
-		o = 8; // don't write out the new IV again
-	}	
+    fprintf(stderr, "usage: crypt [-d] [-p password] [infile [outfile]]\n");
+    exit(1);
 }
 
-int
-decrypt(char *pw,int in,int out)
+static void
+read_password(const char *prompt, char *buf, int size)
 {
-	Blowfish_Key kk;
-	unsigned char buf[BZ];
-	unsigned char t[8];
-	int i,j,k,l,m,n,o,pad_size,done,first;
+    struct termios old, noecho;
+    int tty = isatty(fileno(stdin));
+    int len;
 
-	Blowfish_ExpandUserKey(pw, strlen(pw), kk);
+    fprintf(stderr, "%s", prompt);
+    fflush(stderr);
 
-	// the first time through we read from the very beginning
-	// later we offset by 8 bytes to account for the IV carry
-	// from the previous read
-	l = BZ;
-	n = read(in,buf,l);
-	o = 8; // just past IV
-	m = n; // EOI
-	while( ! done ) {
-		if( n < l ) done = 1;
-		for(i=o;i<m;i+=8) {
-			Blowfish_Decrypt(&buf[i],t,kk);
-			for(j=0,k=i-8;k<i;j++,k++) buf[k] ^= t[j];
-		}
-		// entire buffer shifted back 1 block over
-		// the IV block
-		if( done ) {
-			i -= 8; // back up from the last ciphertext block
-			i -= 1; // back up 1 byte to get pad_size
-			pad_size = buf[i]; 
-			i -= 7; // back up rest of block of the padsize block
-			i -= pad_size; // back up over padding
-			m = write(out,buf,i);
-			if(m != i ) die("write error 2");
-			break;
-		}
-
-		// why 24 bytes (3 blocks)?
-		// need last encrypted block to serve as IV
-		// need last 2 decrypted blocks, in case we
-		// need to calculate pad_size from them, because
-		// we won't know if this is the end of file until
-		// after we attempt another read.
-		m = write(out,buf,i-24);
-		if(m != i-24 ) die("write error 3");
-
-		//save IV and potential pad blocks
-		for( k=0,j=i-24;k<24;j++,k++ ) buf[k] = buf[j];
-		l = BZ - 24;
-		n = read(in,&buf[24],l);
-		o = 24;
-		m = n + o; // BZ, in full buffer case
-	}
+    if (tty) {
+        tcgetattr(fileno(stdin), &old);
+        noecho = old;
+        noecho.c_lflag &= ~(tcflag_t)(ECHO | ECHONL);
+        tcsetattr(fileno(stdin), TCSANOW, &noecho);
+    }
+    if (fgets(buf, size, stdin) == NULL)
+        buf[0] = '\0';
+    if (tty) {
+        tcsetattr(fileno(stdin), TCSANOW, &old);
+        fputc('\n', stderr);
+    }
+    len = strlen(buf);
+    if (len > 0 && buf[len - 1] == '\n')
+        buf[len - 1] = '\0';
 }
 
-int getopt(int argc, char * const argv[],
-                  const char *optstring);
-extern char *optarg;
-extern int optind,opterr, optopt;
-
-int main(argc,argv)
-int argc;
-char *argv[];
+static BYTE *
+slurp(int fd, long *size)
 {
-	char c;
-	char *p;
-	char pw1[128];
-	char pw2[128];
-	char ofname[256];
-	int i,in,out,d=0;
+    struct stat st;
+    BYTE *buf;
+    long cap;
+    ssize_t n;
 
-	pw1[0] = 0;
-
-	while( (c = getopt(argc, argv, "p:d")) > -1 ) {
-		switch (c) {
-		case 'p':
-			p = optarg;
-			strncpy(pw1, p, 127);
-			break;
-		case 'd':
-			d++;
-			break;
-		default:
-			printf("char is %c\n",c);
-			usage();
-			exit(-1);
-		}
-	}
-	if( argc < 1 ) {
-		usage();
-		exit(-1);
-	}
-
-	if( argc-optind > 2 ) usage();
-
-	if( pw1[0] == 0 ) {
-		if( argc-optind < 2 ) 
-			die("must supply -p option when using io redirection");
-		for(i=0;i<128;i++ ) pw1[i] = '\0';
-		for(i=0;i<128;i++ ) pw2[i] = '\0';
-		printf("  pw: ");
-		// turn off echo
-		fgets(pw1,127,stdin);
-		if( ! d ) {
-			printf("again: ");
-			// turn off echo
-			fgets(pw2,127,stdin);
-			for(i=0;i<128;i++ ) {
-				if( pw1[i] != pw2[i] ) die("passwords don't match");
-			}
-		}
-	}
-
-	if( argc-optind == 2 ) {
-		if( strlen(argv[optind+1]) > 250 ) 
-			die("output file name too long");
-		out = open(argv[optind+1],O_WRONLY|O_TRUNC|O_CREAT,0600);
-		if( out<0 ) {
-			perror("couldn't create output file");
-			exit(-1);
-		}
-	}
-	else {
-		out = 1; // stdout
-	}
-
-	if( argc-optind > 0 ) {
-		if( strlen(argv[optind]) > 250 ) 
-			die("input file name too long");
-		in = open(argv[optind],O_RDONLY);
-		if( in < 0 ) {
-			perror("couldn't open input file");
-			exit(-1);
-		}
-	}
-	else {
-		in = 0; // stdin
-	}
-
-	if( d ) {
-		decrypt(pw1,in,out);
-	}
-	else {
-		encrypt(pw1,in,out);
-	}
+    if (fstat(fd, &st) == 0 && S_ISREG(st.st_mode)) {
+        *size = st.st_size;
+        buf = (BYTE *)malloc(*size + 1);
+        if (!buf) die("out of memory");
+        n = read(fd, buf, *size);
+        if (n < 0) die("read error");
+        *size = n;
+        return buf;
+    }
+    /* pipe or special file: grow on demand */
+    cap = 65536;
+    *size = 0;
+    buf = (BYTE *)malloc(cap);
+    if (!buf) die("out of memory");
+    while ((n = read(fd, buf + *size, cap - *size)) > 0) {
+        *size += n;
+        if (*size == cap) {
+            BYTE *tmp;
+            cap *= 2;
+            tmp = (BYTE *)realloc(buf, cap);
+            if (!tmp) die("out of memory");
+            buf = tmp;
+        }
+    }
+    if (n < 0) die("read error");
+    return buf;
 }
 
 int
-usage ()
+main(int argc, char *argv[])
 {
-	printf("crypt [-d] [-p password] infile outfile\n");
-	exit(-1);
+    int    c, in, out, do_decrypt = 0;
+    char   pw1[128], pw2[128];
+    BYTE  *ibuf, *obuf;
+    long   isz;
+    int    osz;
+    ssize_t written;
+
+    pw1[0] = '\0';
+
+    while ((c = getopt(argc, argv, "dp:")) != -1) {
+        switch (c) {
+        case 'd': do_decrypt = 1;                              break;
+        case 'p': strncpy(pw1, optarg, sizeof(pw1) - 1);      break;
+        default:  usage();
+        }
+    }
+    argc -= optind;
+    argv += optind;
+    if (argc > 2) usage();
+
+    if (!pw1[0]) {
+        if (argc < 1)
+            die("must supply -p when reading from stdin");
+        read_password("  pw: ", pw1, sizeof(pw1));
+        if (!do_decrypt) {
+            read_password("again: ", pw2, sizeof(pw2));
+            if (strcmp(pw1, pw2) != 0) die("passwords don't match");
+            memset(pw2, 0, sizeof(pw2));
+        }
+    }
+
+    in  = (argc >= 1) ? open(argv[0], O_RDONLY)                       : 0;
+    out = (argc >= 2) ? open(argv[1], O_WRONLY|O_CREAT|O_TRUNC, 0600) : 1;
+    if (in  < 0) { perror(argv[0]); exit(1); }
+    if (out < 0) { perror(argv[1]); exit(1); }
+
+    ibuf = slurp(in, &isz);
+    if (in != 0) close(in);
+
+    if (do_decrypt) {
+        if (isz < 8 || memcmp(ibuf, ME_MAGIC, 8) != 0)
+            die("not an ME encrypted file");
+        obuf = decrypt_buf((BYTE *)pw1, ibuf, &isz);
+        if (!obuf) die("decryption failed (wrong password or corrupt file)");
+        written = write(out, obuf, (size_t)isz);
+        if (written != (ssize_t)isz) die("write error");
+        free(obuf);
+    } else {
+        osz = (int)isz;
+        obuf = encrypt_buf((BYTE *)pw1, ibuf, &osz);
+        if (!obuf) die("encryption failed");
+        written = write(out, obuf, (size_t)osz);
+        if (written != (ssize_t)osz) die("write error");
+        free(obuf);
+    }
+
+    free(ibuf);
+    memset(pw1, 0, sizeof(pw1));
+    if (out != 1) close(out);
+    return 0;
 }

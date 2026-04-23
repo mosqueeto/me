@@ -520,12 +520,17 @@ int updateline(int row, BYTE vline[], BYTE pline[])
         if( *cp1 < 0x20 ) {
             (*term.hilight)(*cp1 ^ 0x40);
         }
-        else if( *cp1 == 0x7F || *cp1 == 0xff ) {
+        else if( *cp1 == 0x7F ) {
             (*term.hilight)('~');
         }
-        else if( *cp1 > 0x80  ) {
-            if( *cp1 ^ 0x80 < 0x20 ) (*term.hilight)( (*cp1 ^ 0x80) | 0x20 );
-            else (*term.hilight)( *cp1 ^ 0x80 );
+        else if( *cp1 >= 0x80 ) {
+            /* Strip high bit; map control-range results to '?', DEL to '~'.
+             * This also correctly renders highlighted (selected) ASCII chars,
+             * which are stored in the virtual screen with bit 7 set. */
+            unsigned char ch = *cp1 & 0x7F;
+            if      (ch <  0x20) ch = '?';
+            else if (ch == 0x7F) ch = '~';
+            (*term.hilight)(ch);
         }
         else {
             (*term.putchar)(*cp1);

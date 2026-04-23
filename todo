@@ -1,12 +1,33 @@
 bugs: 
 pipe buffer through command clears buffer
     message line shows "pipe: ld bytes" instead of anything useful
-macro example: bind M-r pandoc -f markdown -t plain @render doesn't produce 
-a buffer named render that we can do anything with (not in list-buffers) 
-however, if I try to use buffer "render" (M-b) it says it is a reserved name.
+    however, "> filename" did write the file.
+
+macro example: bind M-r pandoc -f markdown -t plain @render doesn't produce a
+buffer named render that we can do anything with (not in list-buffers; if I
+try to use buffer "render" (M-b) it says it is a reserved name. also 'bind
+M-r pandoc -f markdown -t plain > render' does produce a file 'render', but
+has the unfortunate side effect of deleting all the text in the buffer.
+Should leave the buffer unchanged, and with no asterisk indicating a changed
+buffer.
+
+Also, M-s definition in init file, invokes "sort". However, this overwrites
+the M-s which sets a variable. And, in the process, (probably) messed up the
+variable "rm" (right margin) at least (possibly other settable variables.
 
 can we fix the 8-bit ascii display? do I want to? can we instead add a
 command to change some bytes with high bit set to nearest 7-bit ascii
 equivalent? (internal table of equivalents. there are probably fewer than 10 
 cases that matter)
+
+have me check for a .me directory in "."; definitions should overwrite if 
+any duplicates. allows me to have a project environment.
+
+Would like a document describing the editor, documenting all the keystroke 
+commands. Perhaps even a man page...
+
+question about 'bind M-g ' example in README
+
+a git interface that can be invoked -- does "git pull" before open fname, and
+git commit fname and git push on close. say a "git mode"
 

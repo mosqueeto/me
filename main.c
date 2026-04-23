@@ -186,7 +186,7 @@ Version History:
         write ~~<filename> files for all modified buffers
 */
 
-#define VERSION_NAME "ME2.07"
+#define VERSION_NAME "ME2.08"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -307,6 +307,7 @@ extern  int setrmarg(int, int);     // Set right fill column.
 extern  int setindent(int, int);    // set the indent
 extern  int setmark(int, int);      // Set mark
 extern  int setvar(int, int);       // set a named variable.
+extern  int asciify(int, int);      // convert 8-bit chars to 7-bit ASCII.
 extern  int showcpos(int, int);     // Show the cursor position
 extern  int shrinkwind(int, int);   // Shrink window.
 extern  int spawn(int, int);        // Run a command in a subjob.
@@ -519,6 +520,8 @@ META|'Q',       fillbuf,     "fillbuf",
     "M-Q     fill all paragraphs in buffer",
 META|'r',       qreplace,    "qreplace",
     "M-r     query replace",
+META|'8',       asciify,     "asciify",
+    "M-8     convert 8-bit chars to 7-bit ASCII equivalents",
 META|'s',       setvar,      "setvar",
     "M-s     set value of variable",
 META|'u',       upperword,   "upperword",
@@ -690,6 +693,8 @@ logit("\n");
         pushkey(META|CNTRL|'N'); // just get the "next" (first) file
     }
     update();               // clean up the screen
+    if (init_warning[0])
+        mlwrite("%s", init_warning);
     lastflag = 0;
     mpresf = 1;
 loop:
@@ -1277,6 +1282,7 @@ int edinit(BYTE bname[])
     snprintf((char *)rc_dir,NFILEN,"%s/.me",pw->pw_dir);
     snprintf((char *)kbm_file,NFILEN,"%s/kbm_file",rc_dir);
     init_rc_dir(rc_dir);
+    init_vars();
     kbdmip = NULL;
     for( i=0;i<NKBDM;i++ ) kbdm[i] = 0;
     rest_kbdm(kbm_file);

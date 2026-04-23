@@ -54,8 +54,8 @@ me:	$(OFILES)
 efme:	$(OFILES)
 		$(CC) $(CFLAGS) $(OFILES) -lefence $(LIBS) -o efme
 
-crypt: crypt.o bf.o crypt.h ed.h
-		$(CC) $(CFLAGS) crypt.o bf.o -o crypt
+crypt: crypt.o bf.o crypt_buf.o md5.o crypt.h ed.h
+		$(CC) $(CFLAGS) crypt.o bf.o crypt_buf.o md5.o -o crypt
 
 songbird:	me
 	sudo cp me /bin; \

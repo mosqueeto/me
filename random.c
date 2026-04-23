@@ -55,25 +55,37 @@ int lookupvar(BYTE *name)
 /*
  * Set a variable.
  */
+void
+init_vars(void)
+{
+    if (lastvar >= 0) return;
+    definevar("rmarg", BUILTIN | INTVAL,(void *)&rmarg);
+    definevar("lmarg", BUILTIN | INTVAL,(void *)&lmarg);
+    definevar("rm",    BUILTIN | INTVAL,(void *)&rmarg);
+    definevar("lm",    BUILTIN | INTVAL,(void *)&lmarg);
+    definevar("t",     BUILTIN | INTVAL,(void *)&tabsize);
+    definevar("T",     BUILTIN | INTVAL,(void *)&softtabs);
+}
+
 int setvar(int f, int n)
 {
     BYTE valbuf[81];
-    int v;
-    BYTE *p,*p1;
+    int  v, status;
+    BYTE *p, *p1;
 
     (void)defaultargs(f,n);
-        
-    for( v=0;v<81;v++ ) valbuf[v] = 0;
-        
-    if( lastvar<0 ) {       /* define the built-ins     */
-        definevar("rmarg", BUILTIN | INTVAL,(void *)&rmarg);
-        definevar("lmarg", BUILTIN | INTVAL,(void *)&lmarg);
-        definevar("rm",    BUILTIN | INTVAL,(void *)&rmarg);
-        definevar("lm",    BUILTIN | INTVAL,(void *)&lmarg);
-        definevar("t",     BUILTIN | INTVAL,(void *)&tabsize);
-        definevar("T",     BUILTIN | INTVAL,(void *)&softtabs);
+    init_vars();
+
+    memset(valbuf, 0, sizeof(valbuf));
+
+    status = mlreply("Var: ", valbuf, 80);
+    if (status == ABORT) return ABORT;
+    if (status == FALSE) {
+        /* empty → show all current values */
+        mlwrite("rmarg=%d lmarg=%d tabsize=%d softtabs=%d",
+                rmarg, lmarg, tabsize, softtabs);
+        return TRUE;
     }
-    mlreply("Var: ",valbuf,80);
     p = valbuf;
     while( isspace(*p) ) p++;
     p1 = p;
@@ -89,8 +101,15 @@ int setvar(int f, int n)
         return FALSE;
     }
     if( *p == '\0' ) {
-        mlreply("Val: ",valbuf,80);
+        status = mlreply("Val: ", valbuf, 80);
         p = valbuf;
+        while( isspace(*p) ) p++;
+        if (status != TRUE || *p == '\0') {
+            /* ESC or empty → show current value, don't change */
+            if (vtab[v].flag & INTVAL)
+                mlwrite("%s = %d", vtab[v].name, *((int *)vtab[v].val));
+            return TRUE;
+        }
     }
     while( isspace(*p) ) p++;
     if( vtab[v].flag & INTVAL ) {
@@ -755,4 +774,109 @@ int yank(int f, int n)
         }
     }
     return (TRUE);
+}
+
+/*
+ * Convert 8-bit characters in the current buffer to 7-bit ASCII equivalents.
+ * Table covers Windows-1252 (0x80-0x9F), Latin-1 punctuation (0xA0-0xBF),
+ * and accented letters (0xC0-0xFF).  Bytes with no entry pass through unchanged.
+ */
+int
+asciify(int f, int n)
+{
+    static const char *map[256] = {
+        /* Windows-1252 0x80-0x9F */
+        [0x80]="EUR",
+        [0x82]=",",   [0x83]="f",   [0x84]="\"",
+        [0x85]="...", [0x86]="+",   [0x87]="++",
+        [0x88]="^",   [0x89]="%",
+        [0x8A]="S",   [0x8B]="<",   [0x8C]="OE",
+        [0x8E]="Z",
+        [0x91]="'",   [0x92]="'",
+        [0x93]="\"",  [0x94]="\"",
+        [0x95]="*",   [0x96]="-",   [0x97]="--",
+        [0x98]="~",   [0x99]="(tm)",
+        [0x9A]="s",   [0x9B]=">",   [0x9C]="oe",
+        [0x9E]="z",   [0x9F]="Y",
+        /* Latin-1 punctuation and symbols 0xA0-0xBF */
+        [0xA0]=" ",   [0xA1]="!",   [0xA2]="c",   [0xA3]="GBP",
+        [0xA5]="JPY", [0xA6]="|",   [0xA7]="S",
+        [0xA9]="(c)", [0xAB]="<<",  [0xAE]="(r)",
+        [0xB1]="+/-", [0xB7]=".",   [0xBB]=">>",  [0xBF]="?",
+        /* Uppercase accented letters 0xC0-0xDF */
+        [0xC0]="A",[0xC1]="A",[0xC2]="A",[0xC3]="A",[0xC4]="A",[0xC5]="A",
+        [0xC6]="AE",[0xC7]="C",
+        [0xC8]="E",[0xC9]="E",[0xCA]="E",[0xCB]="E",
+        [0xCC]="I",[0xCD]="I",[0xCE]="I",[0xCF]="I",
+        [0xD0]="D",[0xD1]="N",
+        [0xD2]="O",[0xD3]="O",[0xD4]="O",[0xD5]="O",[0xD6]="O",
+        [0xD7]="x",[0xD8]="O",
+        [0xD9]="U",[0xDA]="U",[0xDB]="U",[0xDC]="U",
+        [0xDD]="Y",[0xDE]="TH",[0xDF]="ss",
+        /* Lowercase accented letters 0xE0-0xFF */
+        [0xE0]="a",[0xE1]="a",[0xE2]="a",[0xE3]="a",[0xE4]="a",[0xE5]="a",
+        [0xE6]="ae",[0xE7]="c",
+        [0xE8]="e",[0xE9]="e",[0xEA]="e",[0xEB]="e",
+        [0xEC]="i",[0xED]="i",[0xEE]="i",[0xEF]="i",
+        [0xF0]="d",[0xF1]="n",
+        [0xF2]="o",[0xF3]="o",[0xF4]="o",[0xF5]="o",[0xF6]="o",
+        [0xF7]="/",[0xF8]="o",
+        [0xF9]="u",[0xFA]="u",[0xFB]="u",[0xFC]="u",
+        [0xFD]="y",[0xFE]="th",[0xFF]="y",
+    };
+
+    BUFFER *bp = curbp;
+    LINE   *lp;
+    BYTE   *out;
+    long    outsz = 0, outcap = 8192;
+    int     changes = 0;
+    int     i, rlen;
+
+    (void)defaultargs(f, n);
+
+    out = (BYTE *)malloc(outcap);
+    if (!out) {
+        mlwrite("asciify: out of memory");
+        return FALSE;
+    }
+
+    for (lp = lforw(bp->lines); lp != bp->lines; lp = lforw(lp)) {
+        for (i = 0; i < lp->used; i++) {
+            unsigned char  c    = (unsigned char)lp->text[i];
+            const char    *repl = map[c];
+            rlen = repl ? (int)strlen(repl) : 1;
+
+            if (outsz + rlen + 2 > outcap) {
+                BYTE *tmp;
+                outcap = (outcap + rlen) * 2;
+                tmp = (BYTE *)realloc(out, outcap);
+                if (!tmp) {
+                    free(out);
+                    mlwrite("asciify: out of memory");
+                    return FALSE;
+                }
+                out = tmp;
+            }
+            if (repl) {
+                memcpy(out + outsz, repl, rlen);
+                outsz += rlen;
+                changes++;
+            } else {
+                out[outsz++] = c;
+            }
+        }
+        if (lp->flags & L_NL)
+            out[outsz++] = '\n';
+    }
+
+    if (changes == 0) {
+        free(out);
+        mlwrite("[asciify: no 8-bit characters found]");
+        return TRUE;
+    }
+
+    load_bytes_into_buffer(bp, out, outsz);
+    free(out);
+    mlwrite("[asciify: %d replacements]", changes);
+    return TRUE;
 }

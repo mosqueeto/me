@@ -218,6 +218,9 @@ extern int  pipe_interactive(int, int);
 extern int  user_execute(int, int, int);
 extern void read_init_file(BYTE *);
 extern void init_rc_dir(BYTE *);
+extern BYTE init_warning[];
+extern void init_vars(void);
+extern void load_bytes_into_buffer(BUFFER *, BYTE *, long);
 
 #ifdef  ED_MAIN
 int dbug;
