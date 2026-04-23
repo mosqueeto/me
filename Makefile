@@ -29,13 +29,6 @@ CFLAGS= -g -Wno-pedantic -fPIC -Wno-implicit
 #
 LIBS= -lc /usr/lib/x86_64-linux-gnu/libtinfo.so.6 -lpcre
 #LIBS= -lc -lncurses
-#
-#for cray 
-#CFLAGS=		O2 -D_CRAY_
-#
-#for k2
-#CC = gcc
-#LIBS= -ltermcap -lc
 
 
 OFILES=		basic.o bf.o buffer.o crypt_buf.o display.o file.o  \
@@ -76,9 +69,6 @@ tar:	clean
 	rm -f me efme ; \
 	tar cf me.tar *.c *.h Makefile
 
-ftp:	tar
-	cp me.tar /home/ftp/pub/me.tar
-	
 	
 
 $(OFILES):	$(HFILES)
