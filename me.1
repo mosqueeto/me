@@ -1,0 +1,509 @@
+.TH ME 1 "2026-04-23" "ME 2.08" "User Commands"
+.SH NAME
+me \- terminal text editor (microEmacs variant)
+.SH SYNOPSIS
+.B me
+[\fIoptions\fR] [\fIfile\fR ...]
+.SH DESCRIPTION
+.B me
+is a terminal-based text editor derived from the public domain microEmacs
+by Dave G. Conroy.  It uses Emacs-style key bindings by default and
+supports multiple windows, multiple buffers, PCRE regular expressions,
+Blowfish-encrypted files, keystroke macros, and a word-wrap mode with
+auto-reflow.
+.PP
+The editor can also be invoked as
+.B v
+(a symlink), which starts in vi view mode (read-only navigation).
+.SH OPTIONS
+.TP
+.B \-h
+Print a brief help message and exit.
+.TP
+.B \-v
+Start in vi/view mode (read-only navigation keys).
+.TP
+.B \-V
+Print the version string and exit.
+.TP
+.B \-w
+Enable word-wrap mode for all buffers on startup.
+.TP
+.B \-m
+Enable mouse reporting (xterm-compatible terminals).
+.SH CONCEPTS
+.SS Point and Mark
+The
+.I point
+is the current cursor position.  The
+.I mark
+is a saved position set with \fB^@\fR or \fBM-Space\fR.  The text between
+the mark and the point is the
+.I region
+and can be copied, cut, or processed as a unit.
+.SS Buffers and Windows
+Each file is loaded into a named
+.IR buffer .
+Multiple buffers can be open simultaneously.  The screen can be split into
+.I windows
+each displaying a different buffer.  Changes in one window to a buffer are
+immediately visible in any other window showing that buffer.
+.SS The Kill Buffer
+Killed (cut) text is saved in the
+.I kill buffer
+and can be yanked back with \fB^Y\fR.  Consecutive kill operations append
+to the same kill buffer entry.
+.SS Numeric Argument
+.B ^U
+introduces a numeric argument for the following command.
+Digits and a leading
+.B \-
+can be typed after \fB^U\fR.  Without digits, \fB^U\fR multiplies
+the argument by four (default argument is 4).
+.SH KEY BINDINGS
+Keys are written using the following notation:
+.TP
+\fB^X\fR
+Control-X
+.TP
+\fBM\-x\fR
+Meta-x (typically Alt+x or ESC then x)
+.TP
+\fB^X^Y\fR
+Control-X prefix followed by Control-Y
+.TP
+\fB^Xy\fR
+Control-X prefix followed by y
+.SS Cursor Movement
+.TP
+.B ^A
+Go to the beginning of the current line.
+.TP
+.B ^E
+Go to the end of the current line.
+.TP
+.B ^B
+Move backward (left) one character.
+.TP
+.B ^F
+Move forward (right) one character.
+.TP
+.B ^P
+Move to the previous line.
+.TP
+.B ^N
+Move to the next line.
+.TP
+.B M\-b
+Move backward one word.
+.TP
+.B M\-f
+Move forward one word.
+.TP
+.B M\-<
+Go to the beginning of the buffer.
+.TP
+.B M\->
+Go to the end of the buffer.
+.TP
+.B M\-n
+Go to a specific line number (prompts for line number).
+.TP
+.B ^X=
+Display the current line number and column.
+.TP
+.B M\-!
+Reposition the current line within the window.
+.SS Paging
+.TP
+.B ^V
+Scroll forward one page.
+.TP
+.B ^C
+Scroll backward one page.
+.TP
+.B ^X^N
+Scroll the window down one line (cursor stays on screen).
+.TP
+.B ^X^P
+Scroll the window up one line.
+.SS Basic Editing
+.TP
+.B ^M
+Insert a newline.
+.TP
+.B ^I
+Insert a tab (soft tab if softtabs is set).
+.TP
+.B ^J, ^O
+Insert newline with current indentation (indent).
+.TP
+.B ^D
+Delete the character at the point (forward delete).
+.TP
+.B ^H, DEL
+Delete the character before the point (backward delete).
+.TP
+.B ^Q
+Quote the next character (insert it literally, ignoring its binding).
+.TP
+.B ^T
+Twiddle (swap) the two characters at the point.
+.TP
+.B ^K
+Kill (cut) from the point to the end of the line.
+Killing an empty line kills the newline.  Repeated \fB^K\fR commands
+append to the kill buffer.
+.TP
+.B M\-d
+Delete forward one word.
+.TP
+.B M\-^H, M\-DEL
+Delete backward one word.
+.TP
+.B ^X^M, ^X^O
+Delete blank lines around the point.
+.TP
+.B M\-8
+Convert 8-bit characters to their nearest 7-bit ASCII equivalents.
+Covers Windows-1252 smart quotes, em dashes, ellipses, and Latin-1
+accented characters.  Reports the number of replacements made.
+.SS Case Conversion
+.TP
+.B M\-u
+Uppercase the word at or after the point.
+.TP
+.B M\-l
+Lowercase the word at or after the point.
+.TP
+.B M\-C
+Capitalize (uppercase first letter) the word.
+.TP
+.B ^X^U
+Uppercase the marked region.
+.TP
+.B ^X^L
+Lowercase the marked region.
+.SS Mark and Region
+.TP
+.B ^@, M\-Space
+Set the mark at the current point.
+.TP
+.B ^X^X, ^Xx
+Swap the point and the mark.
+.SS Kill, Copy, and Yank
+.TP
+.B M\-x
+Cut the marked region (kill region); text goes to the kill buffer.
+.TP
+.B ^X^W
+Kill (wipe) the marked region; same as M\-x.
+.TP
+.B M\-c, M\-w
+Copy the marked region to the kill buffer without deleting it.
+.TP
+.B ^Y, M\-v
+Yank (paste) the kill buffer contents back at the point.
+.SS Search and Replace
+.TP
+.B ^S
+Forward incremental search.  Type the search string; \fB^S\fR again
+finds the next occurrence.  \fB^G\fR or \fBRET\fR exits.
+PCRE regular expressions are supported.
+.TP
+.B ^R
+Reverse incremental search.
+.TP
+.B M\-r
+Query replace.  Prompts for a search string and a replacement string,
+then steps through each match asking: \fBSpace\fR or \fBy\fR to
+replace and advance, \fBn\fR to skip, \fB.\fR to replace and stop,
+\fB!\fR to replace all remaining without prompting, \fB^G\fR to abort.
+.SS Files
+.TP
+.B ^X^V
+Visit (open) a file.  Prompts for a filename and loads it into a buffer.
+.TP
+.B ^X^F
+Read a file into the current buffer, replacing its contents.
+.TP
+.B ^X^S
+Save the current buffer to its associated file.
+.TP
+.B M\-^W
+Write the buffer to a file (prompts for filename).
+.TP
+.B ^X^R
+Change the filename associated with the current buffer (does not write).
+.TP
+.B ^X^I
+Insert a file at the point.
+.TP
+.B M\-^R
+Reread the current file from disk, discarding unsaved changes.
+.TP
+.B M\-^N
+Switch to the next file on the command-line argument list.
+.SS Buffers
+.TP
+.B ^X^B
+List all open buffers in a temporary window.
+.TP
+.B ^Xb, M\-B
+Switch to a named buffer (prompts for name).
+.TP
+.B ^Xk
+Kill (close) a buffer.  Prompts if the buffer has unsaved changes.
+.TP
+.B M\-p
+Pack the buffer: remove trailing whitespace from every line.
+.SS Windows
+.TP
+.B ^X1
+Collapse to a single window showing the current buffer.
+.TP
+.B ^X2
+Split the current window into two windows.
+.TP
+.B ^Xn
+Move to the next window.
+.TP
+.B ^Xp
+Move to the previous window.
+.TP
+.B ^Xg
+Grow (enlarge) the current window by one line.
+.TP
+.B ^X^Z
+Shrink the current window by one line.
+.SS Macros
+A keystroke macro records a sequence of keystrokes that can be replayed.
+.TP
+.B ^X(, ^X[, M\-[
+Start recording a macro.
+.TP
+.B ^X), ^X], M\-]
+Stop recording the macro.
+.TP
+.B ^Xe
+Execute the recorded macro once (or N times with a numeric argument).
+.TP
+.B M\-.
+Assign the recorded macro to the
+.I dot macro
+slot, which is then invoked by the
+.B .
+key.
+.TP
+.B .
+Execute the dot macro if one is set; otherwise insert a literal period.
+.SS Word Wrap
+.TP
+.B M\-W
+Toggle word-wrap mode for the current buffer.  In wrap mode, inserting
+past the right margin automatically wraps the current word to the next
+line.
+.TP
+.B M\-q
+Reflow (fill) the current paragraph to the right margin.
+.TP
+.B M\-Q
+Reflow all paragraphs in the buffer.
+.TP
+.B ^Xf
+Set the right margin.  With no argument, sets it to the current column;
+with a numeric argument (e.g., \fB^U 72 ^Xf\fR), sets it to that value.
+.TP
+.B M\-i
+Set the left indent for auto-wrap.
+.SS Variables
+.TP
+.B M\-s
+Set a variable.  Prompts for a variable name and a new value.
+Entering an empty name displays all current variable values.
+Entering a name only (no value) displays the current value.
+See
+.SM VARIABLES
+below for the list of settable variables.
+.SS Encryption
+.TP
+.B M\-E
+Encrypt the current buffer.  Prompts for a passphrase.  The buffer is
+encrypted in memory using Blowfish CBC; save with \fB^X^S\fR to write
+the encrypted file.
+.TP
+.B M\-D
+Decrypt the current buffer.  Prompts for the passphrase.  Reports an
+error if the passphrase is wrong.
+.SS Miscellaneous
+.TP
+.B ^G
+Abort the current command or operation.
+.TP
+.B ^L
+Redraw the screen.
+.TP
+.B ^Z
+Suspend the editor and spawn a subshell (resume with \fBexit\fR or \fBfg\fR).
+.TP
+.B ^X!
+Spawn a subshell without suspending the editor.
+.TP
+.B ^X|
+Pipe the current buffer through a shell command.  The command output
+replaces the buffer.  Append
+.BI @ buffername
+to the command to send output to a named buffer instead.
+.TP
+.B M\-m
+Toggle mouse support on or off.
+.TP
+.B M\-h
+Display all key bindings in a temporary buffer.
+.TP
+.B M\-?
+Explain the function bound to the next key pressed.
+.TP
+.B M\-^[
+Toggle vi mode on or off.
+.TP
+.B M\-V
+Enter vi view (read-only) mode.
+.TP
+.B ^X^C
+Quit.  Prompts if any buffers have unsaved changes.
+.SH VARIABLES
+Variables are set with
+.B M\-s
+or via the
+.B set
+directive in the init file.
+.TP
+.BR rmarg ", " rm
+Right margin column for word wrap and paragraph fill (default: 77).
+.TP
+.BR lmarg ", " lm
+Left margin column for word wrap and indent (default: 0).
+.TP
+.BR tabsize ", " t
+Tab stop width (default: 4).
+.TP
+.BR softtabs ", " T
+When non-zero, tabs are inserted as spaces to the next tab stop
+(default: 1).
+.SH INIT FILE
+On startup
+.B me
+reads
+.IR ~/.me/init .
+Lines beginning with
+.B #
+are comments.  Blank lines are ignored.
+.SS Syntax
+.TP
+\fBset\fR \fIname\fR \fIvalue\fR
+Set a variable (see
+.SM VARIABLES
+above).
+.TP
+\fBbind\fR \fIkey\fR \fIcommand\fR
+Rebind a key to a built-in command by name.  Command names match the
+names shown by \fBM\-h\fR.  If a binding shadows a built-in, a warning
+is displayed on startup.
+.TP
+\fBbind\fR \fIkey\fR \fB|\fR \fIshell command\fR
+Bind a key so that pressing it pipes the current buffer through the
+given shell command (same semantics as \fB^X|\fR).
+.TP
+\fBmacro\fR \fIname\fR
+Load the named macro file from
+.I ~/.me/macros/
+as the keystroke macro on startup.
+.SS Key Name Syntax
+.TP
+.B M\-x
+Meta+x
+.TP
+.B C\-x, ^x
+Control+x
+.TP
+.B C\-Xx, ^Xx
+Control-X prefix then x
+.TP
+.B C\-X^x, ^X^x
+Control-X prefix then Control+x
+.SS Example
+.nf
+set rm 72
+bind M-s | sort
+macro daily
+.fi
+.SH ENCRYPTION
+Encrypted files begin with the magic prefix
+.B #ME1.42$
+and use Blowfish CBC with a key derived from the passphrase via MD5.
+The standalone utility
+.B crypt
+uses the same format and can encrypt or decrypt files without opening
+the editor.
+.SH VI MODE
+Vi mode provides read-only navigation using familiar vi keys.  It is
+entered with \fB\-v\fR on the command line, by invoking the editor as
+.BR v ,
+or with \fBM\-^\e[\fR (Meta-Escape) or \fBM\-V\fR while editing.
+.PP
+In vi mode the following additional bindings are active:
+.TP
+.BR h ", " l
+Move left or right one character.
+.TP
+.BR j ", " k
+Move down or up one line.
+.TP
+.BR n ", " ^V
+Scroll forward one page.
+.TP
+.BR m ", " u ", " b ", " ^C
+Scroll backward one page.
+.TP
+.B x
+Delete the character at the point (forward delete).
+.TP
+.B A
+Append at end of line (leaves vi mode).
+.TP
+.B s
+Substitute: delete current character and leave vi mode for insert.
+.TP
+.B /
+Forward search.
+.TP
+.B \e
+Backward search.
+.TP
+.BR i ", " ^G
+Leave vi mode and return to normal editing.
+.TP
+.B q
+Quit.
+.SH FILES
+.TP
+.I ~/.me/init
+User configuration file.
+.TP
+.I ~/.me/kbm_file
+Persisted keystroke macro (restored on next startup).
+.TP
+.I ~/.me/macros/
+Directory of named keystroke macro files.
+.TP
+.I ,,filename
+Backup copy of a file, created in the same directory as the original
+before the file is written.  (Backup creation is always on when running
+as root.)
+.SH SEE ALSO
+.BR crypt (1),
+.BR pcre (3)
+.SH AUTHORS
+ME is based on microEmacs by Dave G. Conroy (public domain).
+Subsequent development by Kent Crispin.

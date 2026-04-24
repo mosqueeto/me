@@ -53,7 +53,8 @@ crypt: crypt.o bf.o crypt_buf.o md5.o crypt.h ed.h
 songbird:	me
 	sudo cp me /bin; \
 	sudo rm -f /bin/v; \
-	sudo ln -f /bin/me /bin/v
+	sudo ln -f /bin/me /bin/v; \
+	sudo cp me.1 /usr/share/man/man1/me.1
 
 clean:
 	rm -f *.o core ,,*
