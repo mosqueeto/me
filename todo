@@ -1,4 +1,11 @@
 bugs: 
+
+a mlwrite with an argument n that sleeps for n seconds; n < 5. this allows 
+notifications at init time to be seen even if there is an argument.
+
+wrap: several lines. jump to middle of paragraph start typing. wrap doesn't 
+propogate 
+
 Xpipe buffer through command clears buffer
     message line shows "pipe: ld bytes" instead of anything useful
     however, "> filename" did write the file.

@@ -90,10 +90,14 @@ set varname value          # known vars: rmarg/rm, lmarg/lm, tabsize/t, softtabs
 bind KEYNAME built-in      # rebind to existing command by name (names from keytab[].name)
 bind KEYNAME | shell cmd   # bind key to pipe current buffer through shell command
 macro macroname            # load ~/.me/macros/macroname as the keystroke macro at startup
+def name | shell cmd       # define named macro, invoke with M-m
 ```
 Key name syntax (no internal spaces — run prefix and key together):
 - `M-x` → Meta+x, `C-x` or `^x` → Control+x
 - `C-Xx` or `^Xx` → C-X prefix then x, `C-X^x` → C-X then Control+x
+
+Init files are read in order: `~/.me/init`, then `./.me/init` (if present and different),
+then a file/directory from `-i <path>`. Later definitions override earlier ones.
 
 ### Pipe-buffer mechanism (`C-X |`)
 `pipe_interactive()` prompts for a shell command and pipes the current buffer through it via fork/exec. The buffer is written to a temp file (avoids pipe deadlock), child stdout is captured and loaded back. Output replaces the current buffer by default; append `@buffername` to the command to send output to a named buffer instead.
