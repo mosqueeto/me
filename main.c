@@ -186,7 +186,7 @@ Version History:
         write ~~<filename> files for all modified buffers
 */
 
-#define VERSION_NAME "ME2.08"
+#define VERSION_NAME "ME2.09"
 
 #include <stdio.h>
 #include <stdlib.h>
