@@ -186,7 +186,7 @@ Version History:
         write ~~<filename> files for all modified buffers
 */
 
-#define VERSION_NAME "ME2.09"
+#define VERSION_NAME "ME2.10"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -701,15 +701,17 @@ logit("\n");
     if (nfiles > 0) {
         pushkey(META|CNTRL|'N'); // just get the "next" (first) file
     }
-    update();               // clean up the screen
-    if (init_warning[0])
-        mlwrite("%s", init_warning);
     lastflag = 0;
-    mpresf = 1;
 loop:
     if( resize_window ) {   // set by signal handler
         resize();
         resize_window = 0;
+    }
+    // Show init_warning once the pushkey queue is drained (lookahead==0 means
+    // getkey() will block on a real keystroke — file is already open by then).
+    if (init_warning[0] && !lookahead) {
+        mlwrite("%s", init_warning);
+        init_warning[0] = '\0';
     }
     c = getkey();
     if (mpresf != FALSE) {
