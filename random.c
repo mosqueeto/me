@@ -678,8 +678,16 @@ int backdel(int f, int n)
             kdelete();
         thisflag |= CFKILL;
     }
-    if ((s=backchar(f, n)) == TRUE)
-        s = ldelete(n, f);
+    if ((s=backchar(f, n)) == TRUE) {
+        // In MDWRAP mode: if backchar just crossed a soft-newline (cursor landed
+        // at the end of an L_SNL line), the soft-newline is the "ghost space"
+        // being consumed — don't delete any real character.  wrap_delete will
+        // pull words up from the continuation line to fill the gap.
+        if (!((curbp->mode & MDWRAP) && rmarg > 0 &&
+              (curwp->dotp->flags & L_SNL) &&
+              curwp->doto == llength(curwp->dotp)))
+            s = ldelete(n, f);
+    }
     wrap_delete();
     return (s);
 }

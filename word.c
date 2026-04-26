@@ -580,15 +580,13 @@ int toggle_ww(int f, int n)     // toggle word-wrap (WP) mode for current buffer
 }
 
 /* Split lp at position brk (a space).  The space is consumed and lp is
-   trimmed to [0..brk-1].  The tail (chars after brk) is either prepended
-   to the existing continuation line (when lp had L_SNL) or used to create
-   a new continuation line (when lp was a hard-ended line).  Saves and
-   restores the window cursor. */
+   trimmed to [0..brk-1].  In MDWRAP mode the tail is prepended to the next
+   line whenever that line has content (cascade-friendly); otherwise a new
+   continuation line is created.  Saves and restores the window cursor. */
 static void wrap_split(LINE *lp, int brk)
 {
     int len      = llength(lp);
     int tail_len = len - brk - 1;
-    int had_snl  = lp->flags & L_SNL;
     int i;
 
     // Copy tail before modifying lp
@@ -603,14 +601,18 @@ static void wrap_split(LINE *lp, int brk)
     curwp->dotp = lp;
     curwp->doto = brk;
     ldelete(len - brk, FALSE);
-    if (had_snl || tail_len > 0)
+    if (tail_len > 0)
         lp->flags |= L_SNL;
 
-    if (had_snl) {
-        // Prepend tail to the existing continuation line
-        LINE *next    = lforw(lp);
-        int next_orig = llength(next);
-        curwp->dotp   = next;
+    // In MDWRAP mode, prepend tail to the next line if it has content,
+    // so wrapping cascades through the paragraph instead of inserting blanks.
+    LINE *next_lp   = lforw(lp);
+    int   next_has_content = !(next_lp->flags & L_HEAD) && llength(next_lp) > 0;
+    int   prepend = next_has_content && (curbp->mode & MDWRAP);
+
+    if (prepend) {
+        int next_orig = llength(next_lp);
+        curwp->dotp   = next_lp;
         curwp->doto   = 0;
         for (i = 0; i < tail_len; i++)
             linsert(1, tail[i]);
@@ -623,7 +625,6 @@ static void wrap_split(LINE *lp, int brk)
         lnewline();            // new empty line; cursor on it at offset 0
         for (i = 0; i < tail_len; i++)
             linsert(1, tail[i]);
-        // new line flags: L_NL only (no L_SNL — it's the new paragraph end)
     }
 
     curwp->dotp = save_dotp;
@@ -631,8 +632,12 @@ static void wrap_split(LINE *lp, int brk)
 }
 
 /* After inserting a space that pushes the line over rmarg in MDWRAP mode,
-   split the line at the rightmost space at or after the cursor so the cursor
-   never moves.  Cascades into continuation lines if needed. */
+   find a split point and break the line.  Three cases:
+     - split at/after cursor: cursor stays on current line (cursor-stable)
+     - cursor at EOL, no text after: wrapword wraps the last word
+     - cursor past rmarg with text ahead: split at/before rmarg, cursor
+       follows to the continuation line at the right offset
+   Cascades through continuation lines as needed. */
 void wrap_insert(void)
 {
     LINE *lp     = curwp->dotp;
@@ -642,15 +647,38 @@ void wrap_insert(void)
     int   brk    = -1;
     int   i;
 
+    // Preferred: rightmost space at or after cursor — cursor stays put
     for (i = end; i >= cursor; i--) {
         if (lgetc(lp, i) == ' ') { brk = i; break; }
     }
-    if (brk < 0) return;   // no valid break at or after cursor; leave over-long
+
+    if (brk < 0) {
+        if (cursor >= len) {
+            // Pure EOL — no text after cursor; wrapword handles it
+            wrapword(FALSE, 1);
+            return;
+        }
+        // Cursor past rmarg with text ahead: find rightmost space at/before rmarg
+        for (i = end; i >= lmarg; i--) {
+            if (lgetc(lp, i) == ' ') { brk = i; break; }
+        }
+        if (brk < 0) return;   // single long word; leave over-long
+    }
 
     wrap_split(lp, brk);
 
-    // Cascade: if the continuation line now overflows, split it too.
-    // No cursor constraint on lines below.
+    // If the split landed before the cursor, the cursor is now past the end
+    // of the shortened lp.  Move it to the continuation line at the right offset.
+    if (brk < cursor) {
+        int   new_doto = cursor - brk - 1;
+        LINE *cont_lp  = lforw(lp);
+        int   cont_len = llength(cont_lp);
+        curwp->dotp = cont_lp;
+        curwp->doto = new_doto <= cont_len ? new_doto : cont_len;
+    }
+
+    // Cascade: split continuation lines that still overflow.
+    // Track cursor: if a cascade split lands before the cursor, follow to next line.
     LINE *cont = lforw(lp);
     while (cont != curbp->lines && llength(cont) > rmarg) {
         int len2 = llength(cont);
@@ -661,6 +689,11 @@ void wrap_insert(void)
         }
         if (brk2 < 0) break;
         wrap_split(cont, brk2);
+        if (curwp->dotp == cont && curwp->doto > llength(cont)) {
+            int excess = curwp->doto - llength(cont) - 1;
+            curwp->dotp = lforw(cont);
+            curwp->doto = excess >= 0 ? excess : 0;
+        }
         cont = lforw(cont);
     }
 

@@ -10,8 +10,13 @@
 #For truly clean code, add -Wchar-subscripts -Winline -Wnested-externs 
 #-Wredundant-decls. 
 #
-# libtermcap: sudo apt install libncurses5-dev
-# libpcre3: sudo apt install libpcre3-dev
+# Dependencies (dynamic build):
+#   sudo apt install libncurses5-dev libpcre3-dev
+#
+# Dependencies (static build):
+#   sudo apt install libncurses-dev libpcre3-dev
+#   provides: /usr/lib/x86_64-linux-gnu/libtinfo.a
+#             /usr/lib/x86_64-linux-gnu/libpcre.a
 
 PLATFORM=linux
 #PLATFORM=bsd
@@ -43,6 +48,13 @@ HFILES=	 ed.h search.h crypt.h
 
 me:	$(OFILES)
 		$(CC) $(CFLAGS) -L. $(OFILES) $(LIBS) -o me
+
+me.static: $(OFILES)
+		$(CC) -static $(CFLAGS) -L. $(OFILES) -lc \
+		    /usr/lib/x86_64-linux-gnu/libtinfo.a \
+		    /usr/lib/x86_64-linux-gnu/libpcre.a \
+		    -Wl,--allow-multiple-definition \
+		    -o me.static
 
 efme:	$(OFILES)
 		$(CC) $(CFLAGS) $(OFILES) -lefence $(LIBS) -o efme

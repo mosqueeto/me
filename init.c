@@ -11,6 +11,7 @@
  *   bind KEYNAME built-in-name
  *   bind KEYNAME | shell command...
  *   macro macroname
+ *   def name | shell command...
  *
  * Key name syntax (no internal spaces):
  *   M-x      Meta + x
@@ -29,6 +30,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include "ed.h"
 
@@ -36,9 +38,11 @@
 /* User key table                                                       */
 /* ------------------------------------------------------------------ */
 
-USER_KEY user_keys[NUSER_KEYS];
-int      n_user_keys = 0;
-BYTE     init_warning[NLINE] = "";
+USER_KEY     user_keys[NUSER_KEYS];
+int          n_user_keys = 0;
+NAMED_MACRO  named_macros[NNAMED_MACROS];
+int          n_named_macros = 0;
+BYTE         init_warning[NLINE] = "";
 
 /* ------------------------------------------------------------------ */
 /* Key name parser                                                      */
@@ -130,6 +134,23 @@ user_bind(int keycode, int (*fp)(int, int), const char *cmd)
     user_keys[n_user_keys].k_cmd  = cmd ? strdup(cmd) : NULL;
     n_user_keys++;
     return TRUE;
+}
+
+static void
+named_bind(const char *name, const char *cmd)
+{
+    int i;
+    for (i = 0; i < n_named_macros; i++) {
+        if (strcmp(named_macros[i].name, name) == 0) {
+            free(named_macros[i].cmd);
+            named_macros[i].cmd = strdup(cmd);
+            return;
+        }
+    }
+    if (n_named_macros >= NNAMED_MACROS) { mlwrite("named macro table full"); return; }
+    named_macros[n_named_macros].name = strdup(name);
+    named_macros[n_named_macros].cmd  = strdup(cmd);
+    n_named_macros++;
 }
 
 /* ------------------------------------------------------------------ */
@@ -472,6 +493,13 @@ static const char readme_text[] =
 "  macro macroname\n"
 "      Load a saved macro from ~/.me/macros/macroname at startup.\n"
 "\n"
+"  def name | shell command...\n"
+"      Define a named macro invokable with M-m.  Output replaces the\n"
+"      current buffer by default; append @buffername to redirect:\n"
+"        def fmt       | fmt -72\n"
+"        def md-plain  | pandoc -f markdown -t plain\n"
+"        def md-html   | pandoc -f markdown -t html @html\n"
+"\n"
 "KEY NAME SYNTAX (no internal spaces -- run prefix and key together)\n"
 "  M-x      Meta (ESC) + x\n"
 "  C-x      Control + x  (also written ^x)\n"
@@ -529,46 +557,30 @@ init_rc_dir(BYTE *rc_dir)
 /* ------------------------------------------------------------------ */
 
 /*
- * Read and process ~/.me/init.
- * Called from edinit() after the macro file is restored.
- *
- * Supported directives:
- *   set varname value
- *   bind KEYNAME built-in-name
- *   bind KEYNAME | shell command string...
- *   macro macroname
+ * Parse an open init file.  macro_dir is used to resolve "macro name"
+ * directives as macro_dir/macros/name.
  */
-void
-read_init_file(BYTE *rc_dir)
+static void
+parse_init_fp(FILE *fp, const char *macro_dir)
 {
-    char  path[NFILEN];
     char  line[NLINE];
     char *p, *keyword, *rest;
-    FILE *fp;
     int   keycode;
     int (*builtin)(int, int);
 
-    snprintf(path, sizeof(path), "%s/init", (char *)rc_dir);
-    fp = fopen(path, "r");
-    if (!fp) return;    /* no init file is fine */
-
     while (fgets(line, sizeof(line), fp)) {
-        /* strip trailing newline */
         p = line + strlen(line) - 1;
         while (p >= line && (*p == '\n' || *p == '\r' || *p == ' ')) *p-- = '\0';
 
-        /* skip blank lines and comments */
         p = line;
         while (isspace((unsigned char)*p)) p++;
         if (!*p || *p == '#') continue;
 
-        /* first token: directive keyword */
         keyword = p;
         while (*p && !isspace((unsigned char)*p)) p++;
         if (*p) { *p++ = '\0'; while (isspace((unsigned char)*p)) p++; }
         rest = p;
 
-        /* ---- set varname value ---- */
         if (strcmp(keyword, "set") == 0) {
             char *var = rest;
             while (*rest && !isspace((unsigned char)*rest)) rest++;
@@ -576,18 +588,15 @@ read_init_file(BYTE *rc_dir)
             if (*var && *rest)
                 init_set(var, rest);
 
-        /* ---- bind KEYNAME ... ---- */
         } else if (strcmp(keyword, "bind") == 0) {
-            /* next token: key name (no internal spaces — use C-Xx not "C-X x") */
             char *keystr = rest;
             while (*rest && !isspace((unsigned char)*rest)) rest++;
             if (*rest) { *rest++ = '\0'; while (isspace((unsigned char)*rest)) rest++; }
             if (!*keystr || !*rest) continue;
 
             keycode = parse_keyname(keystr);
-            if (keycode < 0) continue;  /* unrecognised key name */
+            if (keycode < 0) continue;
 
-            /* warn once if this key already has a built-in binding */
             if (!init_warning[0]) {
                 KEYTAB *ktp = keytab;
                 while (ktp->k_code != 0) {
@@ -601,29 +610,102 @@ read_init_file(BYTE *rc_dir)
             }
 
             if (rest[0] == '|') {
-                /* pipe command */
                 rest++;
                 while (isspace((unsigned char)*rest)) rest++;
                 if (*rest)
                     user_bind(keycode, NULL, rest);
             } else {
-                /* built-in function name */
                 builtin = lookup_builtin(rest);
                 if (builtin)
                     user_bind(keycode, builtin, NULL);
             }
 
-        /* ---- macro macroname ---- */
         } else if (strcmp(keyword, "macro") == 0) {
-            if (*rest) {
+            if (*rest && macro_dir) {
                 char mpath[512];
-                snprintf(mpath, sizeof(mpath), "%s/macros/%s",
-                         (char *)rc_dir, rest);
+                snprintf(mpath, sizeof(mpath), "%s/macros/%s", macro_dir, rest);
                 rest_kbdm((BYTE *)mpath);
             }
+
+        /* ---- def name | shell cmd ---- */
+        } else if (strcmp(keyword, "def") == 0) {
+            char *name = rest;
+            while (*rest && !isspace((unsigned char)*rest)) rest++;
+            if (*rest) { *rest++ = '\0'; while (isspace((unsigned char)*rest)) rest++; }
+            if (!*name || !*rest) continue;
+            if (rest[0] == '|') { rest++; while (isspace((unsigned char)*rest)) rest++; }
+            if (*name && *rest)
+                named_bind(name, rest);
         }
         /* unknown directives silently ignored */
     }
+}
 
+/*
+ * Read rc_dir/init.  Called from edinit() for ~/.me and ./.me.
+ */
+void
+read_init_file(BYTE *rc_dir)
+{
+    char path[NFILEN];
+    FILE *fp;
+
+    snprintf(path, sizeof(path), "%s/init", (char *)rc_dir);
+    fp = fopen(path, "r");
+    if (!fp) return;
+    parse_init_fp(fp, (char *)rc_dir);
     fclose(fp);
+}
+
+/*
+ * Read an init file given as a direct path (file or directory).
+ * If path is a directory, reads path/init with path as macro_dir.
+ * If path is a plain file, reads it directly; macros resolve from
+ * the file's parent directory.
+ */
+void
+read_init_path(const char *path)
+{
+    struct stat st;
+    FILE  *fp;
+
+    if (stat(path, &st) != 0) return;
+
+    if (S_ISDIR(st.st_mode)) {
+        read_init_file((BYTE *)path);
+        return;
+    }
+
+    fp = fopen(path, "r");
+    if (!fp) return;
+
+    /* macro_dir = parent directory of the file */
+    char macro_dir[NFILEN];
+    strncpy(macro_dir, path, sizeof(macro_dir) - 1);
+    macro_dir[sizeof(macro_dir) - 1] = '\0';
+    char *slash = strrchr(macro_dir, '/');
+    if (slash) *slash = '\0'; else strcpy(macro_dir, ".");
+
+    parse_init_fp(fp, macro_dir);
+    fclose(fp);
+}
+
+/* M-m: prompt for a named macro and execute it. */
+int
+named_macro(int f, int n)
+{
+    BYTE name[NLINE];
+    int  i, status;
+
+    (void)defaultargs(f, n);
+    memset(name, 0, sizeof(name));
+    status = mlreply("Macro: ", name, sizeof(name) - 1);
+    if (status != TRUE || !name[0]) return FALSE;
+
+    for (i = 0; i < n_named_macros; i++) {
+        if (strcmp((char *)name, named_macros[i].name) == 0)
+            return do_pipe(curbp, named_macros[i].cmd, curbp);
+    }
+    mlwrite("Macro not found: %s", name);
+    return FALSE;
 }

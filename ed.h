@@ -210,11 +210,21 @@ typedef struct {
     char *k_cmd;            // Non-NULL: pipe shell command
 } USER_KEY;
 
-extern KEYTAB    keytab[];
-extern USER_KEY  user_keys[];
-extern int       n_user_keys;
+#define NNAMED_MACROS 64
+
+typedef struct {
+    char *name;             // Macro name (from "named" directive)
+    char *cmd;              // Pipe command string
+} NAMED_MACRO;
+
+extern KEYTAB       keytab[];
+extern USER_KEY     user_keys[];
+extern int          n_user_keys;
+extern NAMED_MACRO  named_macros[];
+extern int          n_named_macros;
 
 extern int  pipe_interactive(int, int);
+extern int  named_macro(int, int);
 extern int  user_execute(int, int, int);
 extern void read_init_file(BYTE *);
 extern void init_rc_dir(BYTE *);

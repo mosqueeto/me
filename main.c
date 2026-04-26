@@ -186,7 +186,7 @@ Version History:
         write ~~<filename> files for all modified buffers
 */
 
-#define VERSION_NAME "ME2.08"
+#define VERSION_NAME "ME2.10"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -215,6 +215,7 @@ extern  int backchar(int, int);     // Move backward by characters
 extern  int backdel(int, int);      // Backward delete
 extern  int pipe_interactive(int, int); // Pipe buffer through shell command
 extern  void init_rc_dir(BYTE *);       // Create/verify ~/.me/ structure
+extern  void read_init_path(const char *);  // Read init file or directory
 extern  int backline(int, int);     // Move backward by lines
 extern  int backpage(int, int);     // Move backward by pages
 extern  int backsearch(int, int);   // Search backwards
@@ -508,8 +509,10 @@ META|'i',       setindent,   "setindent",
     "M-i     set indent",
 META|'l',       lowerword,   "lowerword",
     "M-l     lowercase word",
-META|'m',       mouse_toggle,"mouse_toggle",
-    "M-m     toggle mouse on/off",
+META|'m',       named_macro, "named_macro",
+    "M-m     invoke named macro",
+META|'M',       mouse_toggle,"mouse_toggle",
+    "M-M     toggle mouse on/off",
 META|'n',       gotoline,    "gotoline",
     "M-n     goto line number",
 META|'p',       pack,        "pack",
@@ -617,6 +620,7 @@ int main(int argc, char *argv[])
     int    nfiles;
     int    mflag;
     int    i;
+    char  *extra_init = NULL;
     BYTE   bname[NBUFN];
     BYTE   fname[NFILEN];
     BYTE   options[256];
@@ -628,14 +632,14 @@ logit("\n\nme starting...\n");
 logit("argv[0]: ");
 logit(argv[0]);
 logit("\n");
-    
+
     strcpy((char *)version,VERSION_NAME);
 
     for( n=0;n++;n<NKBDM ) kbdm[n] = 0;
 
     strcpy((char *)bname, "main");  // name of the default buffer.
 
-    while( (c = getopt(argc,argv,"+hvVD:o:n:f:mMw")) > 0 ){
+    while( (c = getopt(argc,argv,"+hvVD:o:n:f:i:mMw")) > 0 ){
         switch (c) {
         case 'h':
             usage();
@@ -650,6 +654,9 @@ logit("\n");
         case 'V': // print version and exit
             printf("Version %s\n",version);
             exit(0);
+            break;
+        case 'i': // extra init file or directory
+            extra_init = optarg;
             break;
         case 'm': // enable mouse reporting
             mouse_enabled = 1;
@@ -675,9 +682,11 @@ logit("\n");
         i++;nfiles++;
     }
     fnames[nfiles] = NULL;
-            
+
     (void)vtinit();
     (void)edinit(bname);
+    if (extra_init)
+        read_init_path(extra_init);
     (void)helpinit();
 
     signal(SIGHUP,sig_handler);
@@ -692,15 +701,17 @@ logit("\n");
     if (nfiles > 0) {
         pushkey(META|CNTRL|'N'); // just get the "next" (first) file
     }
-    update();               // clean up the screen
-    if (init_warning[0])
-        mlwrite("%s", init_warning);
     lastflag = 0;
-    mpresf = 1;
 loop:
     if( resize_window ) {   // set by signal handler
         resize();
         resize_window = 0;
+    }
+    // Show init_warning once the pushkey queue is drained (lookahead==0 means
+    // getkey() will block on a real keystroke — file is already open by then).
+    if (init_warning[0] && !lookahead) {
+        mlwrite("%s", init_warning);
+        init_warning[0] = '\0';
     }
     c = getkey();
     if (mpresf != FALSE) {
@@ -1226,6 +1237,7 @@ me [options] file1 file2 ...\n\
     -V        print version and exit\n\
     -w        wrap mode on for all buffers\n\
     -m        enable mouse reporting\n\
+    -i <path> extra init file or .me directory (read after ~/.me and ./.me)\n\
     -D <n>    set debug level\n\
 ");
     exit(0);
@@ -1287,6 +1299,16 @@ int edinit(BYTE bname[])
     for( i=0;i<NKBDM;i++ ) kbdm[i] = 0;
     rest_kbdm(kbm_file);
     read_init_file(rc_dir);
+
+    /* Read ./.me/init if it exists and is a different directory than ~/.me */
+    {
+        struct stat st_home, st_local;
+        if (stat((char *)rc_dir, &st_home) == 0 &&
+            stat(".me", &st_local) == 0 &&
+            (st_home.st_dev != st_local.st_dev ||
+             st_home.st_ino != st_local.st_ino))
+            read_init_file((BYTE *)".me");
+    }
 
     escape_pressed = 0;
 
