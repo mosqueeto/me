@@ -17,6 +17,7 @@
 #   sudo apt install libncurses-dev libpcre3-dev
 #   provides: /usr/lib/x86_64-linux-gnu/libtinfo.a
 #             /usr/lib/x86_64-linux-gnu/libpcre.a
+# for arch: sudo pacman -S ncurses pcre
 
 PLATFORM=linux
 #PLATFORM=bsd
