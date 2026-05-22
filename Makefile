@@ -17,6 +17,7 @@
 #   sudo apt install libncurses-dev libpcre3-dev
 #   provides: /usr/lib/x86_64-linux-gnu/libtinfo.a
 #             /usr/lib/x86_64-linux-gnu/libpcre.a
+# for arch: sudo pacman -S ncurses pcre
 
 PLATFORM=linux
 #PLATFORM=bsd
@@ -27,12 +28,13 @@ CFLAGS= -g -Wno-pedantic -fPIC -Wno-implicit
 #LIBS= -lefence -ltermcap -lc -lncurses 
 #LIBS= -ltermcap -lc -lncurses -lpcre
 #
-#for mac mini
+LIBS= -lncurses -lpcre
+#for mac mini 
 #LIBS= -ltermcap -lc -lncurses
 #sudo apt install libncurses5-dev
 #sudo apt install libpcre3 libpcre3-dev
 #
-LIBS= -lc /usr/lib/x86_64-linux-gnu/libtinfo.so.6 -lpcre
+#LIBS= -lc /usr/lib/x86_64-linux-gnu/libtinfo.so.6 -lpcre
 #LIBS= -lc -lncurses
 
 
