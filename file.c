@@ -288,7 +288,7 @@ logit(bufp->bname);
     strcpy((char *)bufp->fname, (char *)fname);
 
     // actual mechanics of the read into current buffer
-    status = do_read(bufp,fname,&nline,&fz);
+    status = do_read(bufp,fname,&nline,&fz,0);
 
 logint("\ndo_read status: ",status);
     
@@ -355,7 +355,7 @@ if( dbug ) {
     curbp->dotp = curwp->dotp;
     curbp->doto = 0;
 
-    status = do_read(curbp,fname,&nline,&fz);
+    status = do_read(curbp,fname,&nline,&fz,1);
 
     // advance to the next line and mark the window for changes
     curwp->dotp = save_dotp;
@@ -383,7 +383,7 @@ emacs "buffer".  This is so we can decrypt (or otherwise preprocess the
 file, though the only processing so far is decrypting.)
 */
 
-int do_read(BUFFER *bp, BYTE fname[], long *nlines, long *filesize)
+int do_read(BUFFER *bp, BYTE fname[], long *nlines, long *filesize, int insert)
 {
     LINE   *lp;
     int  status = TRUE;
@@ -410,7 +410,7 @@ if( dbug ) {
     sleep(1);
 }
     // open file
-    if( ( fd = ffropen(fname) ) < 0 ) {
+    if( ( fd = ffropen(fname, insert) ) < 0 ) {
         if( io_error != ENOENT )
         return FIOERR; // ffropen leaves message in status line
     }
@@ -990,7 +990,7 @@ int filename(int f, int n)
 //  Open a file for reading.
 //
 int
-ffropen(BYTE *fn)
+ffropen(BYTE *fn, int insert)
 {
     int fd;
 
@@ -1007,7 +1007,9 @@ ffropen(BYTE *fn)
     }
 
     // status checks, for meaningful errors...
-    if( ffget_stat(fd,0) == FIOERR ) return FIOERR;
+    // insert=1: use flag 3 (stat only, no registration) so the file is not
+    // tracked in file_data[] and won't produce false "already open" warnings
+    if( ffget_stat(fd, insert ? 3 : 0) == FIOERR ) return FIOERR;
 
     if( S_ISDIR(statbuf.st_mode) ) {
         mlwrite("%s: directory",fn);
@@ -1042,12 +1044,14 @@ if( dbug ) {
     mlwrite("stat.. file_sz: %d",file_sz);
     sleep(1);
 }
+    if( flag == 3 ) return FIOSUC;  // insert: stat only, no registration
+
     for( i=0; i<last_file; i++ ) {
         if( statbuf.st_ino == file_data[i]->st_ino ) {
             if( flag == 0 ) {  // reading
                 mlwrite("Warning: file (inode %d) already open",
                     statbuf.st_ino);
-                sleep(1);
+                sleep(3);
                 // update earlier data
                 memcpy(file_data[i],&statbuf,sizeof(statbuf));
                 return FIOSUC;
