@@ -61,8 +61,8 @@ me.static: $(OFILES)
 efme:	$(OFILES)
 		$(CC) $(CFLAGS) $(OFILES) -lefence $(LIBS) -o efme
 
-crypt: crypt.o bf.o crypt_buf.o md5.o crypt.h ed.h
-		$(CC) $(CFLAGS) crypt.o bf.o crypt_buf.o md5.o -o crypt
+mcrypt: mcrypt.o bf.o crypt_buf.o md5.o crypt.h ed.h
+		$(CC) $(CFLAGS) crypt.o bf.o crypt_buf.o md5.o -o mcrypt
 
 songbird:	me
 	sudo cp me /bin; \
