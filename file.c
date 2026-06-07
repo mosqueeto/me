@@ -351,6 +351,10 @@ if( dbug ) {
     curwp->markp = curwp->dotp;
     curwp->marko = 0;
 
+    // do_read uses curbp->dotp as the insertion point; sync it from the window
+    curbp->dotp = curwp->dotp;
+    curbp->doto = 0;
+
     status = do_read(curbp,fname,&nline,&fz);
 
     // advance to the next line and mark the window for changes
