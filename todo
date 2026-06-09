@@ -15,10 +15,6 @@ has the unfortunate side effect of deleting all the text in the buffer.
 Should leave the buffer unchanged, and with no asterisk indicating a changed
 buffer.
 
-Also, M-s definition in init file, invokes "sort". However, this overwrites
-the M-s which sets a variable. And, in the process, (probably) messed up the
-variable "rm" (right margin) at least (possibly other settable variables.
-
 Xcan we fix the 8-bit ascii display? do I want to? can we instead add a command to change some bytes with high bit set to nearest 7-bit ascii equivalent? (internal table of equivalents. there are probably fewer than 10 cases that matter) (C. identifies the "Windows-1352" character set as source of most of these issues
 
 XWould like a document describing the editor, documenting all the keystroke 
