@@ -184,9 +184,11 @@ Version History:
         ldelnewline/fillbuf fixes, removed fillpara-based auto-wrap
 2.07--  panic-save on shutdown: catch SIGTERM/SIGQUIT in addition to SIGHUP,
         write ~~<filename> files for all modified buffers
+2.13--  added -b option to disable ",,filename" backups; failure to create
+        a backup no longer aborts the save (warns and writes anyway)
 */
 
-#define VERSION_NAME "ME2.12"
+#define VERSION_NAME "ME2.13"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -627,6 +629,7 @@ int main(int argc, char *argv[])
     (BYTE *)fnames[256];
 
     vi_mode = FALSE;
+    auto_backup = 1;    // create ",,filename" backups by default
 
 logit("\n\nme starting...\n");
 logit("argv[0]: ");
@@ -639,10 +642,13 @@ logit("\n");
 
     strcpy((char *)bname, "main");  // name of the default buffer.
 
-    while( (c = getopt(argc,argv,"+hvVD:o:n:f:i:mMw")) > 0 ){
+    while( (c = getopt(argc,argv,"+hvVD:o:n:f:i:mMwb")) > 0 ){
         switch (c) {
         case 'h':
             usage();
+            break;
+        case 'b': // disable ",,filename" backups
+            auto_backup = 0;
             break;
         case 'D':
             dbug = atoi(optarg);
@@ -693,9 +699,6 @@ logit("\n");
     signal(SIGTERM,sig_handler);
     signal(SIGQUIT,sig_handler);
     signal(SIGWINCH,sig_winch);
-
-    auto_backup = 0;
-    if( geteuid() == 0 ) auto_backup = 1;
 
     update();               // clean up the screen
     if (nfiles > 0) {
@@ -1223,6 +1226,7 @@ me [options] file1 file2 ...\n\
     -V        print version and exit\n\
     -w        wrap mode on for all buffers\n\
     -m        enable mouse reporting\n\
+    -b        disable \",,filename\" backup files\n\
     -i <path> extra init file or .me directory (read after ~/.me and ./.me)\n\
     -D <n>    set debug level\n\
 ");

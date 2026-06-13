@@ -810,35 +810,36 @@ int writeout(BYTE *fn, int update)
         
         // update mode preserve the inode?
         if( update ) {
-            unlink((char *)backupname); // delete previous backup, if any
-            o_umask = umask(0);  // must be able to recreate any modes
-            ofd = open( (char *)backupname, O_WRONLY|O_CREAT|O_EXCL, mode );
-            o_umask = umask(o_umask);
+            if( auto_backup ) {
+                unlink((char *)backupname); // delete previous backup, if any
+                o_umask = umask(0);  // must be able to recreate any modes
+                ofd = open( (char *)backupname, O_WRONLY|O_CREAT|O_EXCL, mode );
+                o_umask = umask(o_umask);
 
-            // if we can't create backup, don't write the file; return
-            if( ofd < 0 ) {
-                io_error = errno;
-                mlwrite("Error creating backup file");
-                sleep(1);
-                mlwrite(strerror(io_error));
-                return( FIOSUC ); // don't write the file
-            }
+                // if we can't create the backup, warn but write the
+                // file anyway -- a missing backup shouldn't block a save
+                if( ofd < 0 ) {
+                    io_error = errno;
+                    mlwrite("Warning: couldn't create backup file: %s",
+                            strerror(io_error));
+                    sleep(1);
+                }
+                else {
+                    // duplicate the metadata for the backup file
+                    chown( (char *)backupname, statbuf.st_uid, statbuf.st_gid );
 
-            // duplicate the metadata for the backup file
-            chown( (char *)backupname, statbuf.st_uid, statbuf.st_gid );
-
-            if( fdcopy( nfd,ofd,statbuf.st_size ) < 0 ) {
-                io_error = errno;
-                mlwrite("Error copying to backup file");
-                sleep(1);
-                mlwrite(strerror(io_error));
-                close( nfd );
-                close( ofd );
-                return( FIOSUC );
+                    if( fdcopy( nfd,ofd,statbuf.st_size ) < 0 ) {
+                        io_error = errno;
+                        mlwrite("Warning: error copying to backup file: %s",
+                                strerror(io_error));
+                        sleep(1);
+                        unlink((char *)backupname); // remove incomplete backup
+                    }
+                    close(ofd);
+                }
             }
             close(nfd);
 
-            // ok, backup created and successfully written
             // now reopen the file and copy changed data over it
             // note that the code for the two modes after this open
             // is the same
@@ -848,7 +849,6 @@ int writeout(BYTE *fn, int update)
                 mlwrite("Error rewriting original file");
                 sleep(1);
                 mlwrite(strerror(io_error));
-                close( ofd );
                 return( FIOSUC );
             }
         } // end update mode code
@@ -956,7 +956,6 @@ int writeout(BYTE *fn, int update)
         }
     }
 
-//    if(! auto_backup ) unlink((char *)backupname);
     return (TRUE);
 }
 
