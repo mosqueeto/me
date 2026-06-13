@@ -31,10 +31,13 @@ import os, sys, time, select, struct, fcntl, termios, signal
 ME = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "me")
 
 
-def drive(target, logpath, cmds, rows=30, cols=100, settle=0.3, exe=ME):
+def drive(target, logpath, cmds, rows=30, cols=100, settle=0.3, exe=ME, extra_args=()):
     """Launch `exe` on `target` in a pty, send `cmds` (byte-strings, sent one
     at a time with a short pause for the screen to settle), record all output
     to `logpath`, and wait for the editor to exit (or kill it after a timeout).
+
+    `extra_args` are inserted before `target` on the command line, e.g.
+    extra_args=("-b",) to test the no-backup option.
     """
     import pty
     master, slave = pty.openpty()
@@ -54,7 +57,7 @@ def drive(target, logpath, cmds, rows=30, cols=100, settle=0.3, exe=ME):
         env["TERM"] = "xterm"
         env["COLUMNS"] = str(cols)
         env["LINES"] = str(rows)
-        os.execvpe(exe, [exe, target], env)
+        os.execvpe(exe, [exe, *extra_args, target], env)
         os._exit(1)
 
     os.close(slave)
