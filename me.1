@@ -31,6 +31,11 @@ Enable word-wrap mode for all buffers on startup.
 .TP
 .B \-m
 Enable mouse reporting (xterm-compatible terminals).
+.TP
+.B \-b
+Disable creation of
+.I ,,filename
+backup files on save.
 .SH CONCEPTS
 .SS Point and Mark
 The
@@ -499,8 +504,10 @@ Directory of named keystroke macro files.
 .TP
 .I ,,filename
 Backup copy of a file, created in the same directory as the original
-before the file is written.  (Backup creation is always on when running
-as root.)
+before the file is written.  Disable with the
+.B \-b
+option.  If the backup cannot be created (e.g. the directory is not
+writable), a warning is shown but the file is saved anyway.
 .SH SEE ALSO
 .BR crypt (1),
 .BR pcre (3)
