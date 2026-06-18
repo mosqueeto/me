@@ -7,7 +7,56 @@
 #include    <string.h>
 #include    <stdlib.h>
 #include    "ed.h"
-#include    <pcre.h>
+
+#ifdef USE_PCRE2
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include <pcre2.h>
+#define ME_CASELESS PCRE2_CASELESS
+typedef pcre2_code ME_RE;
+
+static ME_RE *
+me_compile(const char *pat, int opts)
+{
+    int ec;
+    PCRE2_SIZE eo;
+    return pcre2_compile((PCRE2_SPTR)pat, PCRE2_ZERO_TERMINATED, opts, &ec, &eo, NULL);
+}
+
+static int
+me_exec(ME_RE *re, const char *s, int len, int off, int *ov)
+{
+    pcre2_match_data *md;
+    PCRE2_SIZE *pov;
+    int rc;
+    md = pcre2_match_data_create_from_pattern(re, NULL);
+    rc = pcre2_match(re, (PCRE2_SPTR)s, (PCRE2_SIZE)len, (PCRE2_SIZE)off, 0, md, NULL);
+    if (rc >= 0) {
+        pov = pcre2_get_ovector_pointer(md);
+        ov[0] = (int)pov[0];
+        ov[1] = (int)pov[1];
+    }
+    pcre2_match_data_free(md);
+    return rc;
+}
+#else
+#include <pcre.h>
+#define ME_CASELESS PCRE_CASELESS
+typedef pcre ME_RE;
+
+static ME_RE *
+me_compile(const char *pat, int opts)
+{
+    const char *err;
+    int eo;
+    return pcre_compile(pat, opts, &err, &eo, NULL);
+}
+
+static int
+me_exec(ME_RE *re, const char *s, int len, int off, int *ov)
+{
+    return pcre_exec(re, NULL, s, len, off, 0, ov, 30);
+}
+#endif
 
 #define FORWARD 1
 #define BACKWARD 0
@@ -27,9 +76,7 @@ int
 forwsearch(int f, int n)
 {
     register int status = TRUE;
-    const char *error;
-    int erroffset;
-    pcre *re;
+    ME_RE *re;
     int pcre_options = 0;
 
     if( n == 0 ) n = 1;
@@ -41,7 +88,7 @@ forwsearch(int f, int n)
      */
     if( (status = readpattern("search", &pat[0])) == TRUE ){
         pcre_options = check_pattern(pat);
-        re = pcre_compile(pat,pcre_options,&error,&erroffset,NULL);
+        re = me_compile(pat, pcre_options);
         do {
             status = scanfw(re);
         } while( (--n > 0) && status );
@@ -57,12 +104,12 @@ forwsearch(int f, int n)
 
 int check_pattern(BYTE p[])
 {
-    int result = PCRE_CASELESS;
+    int result = ME_CASELESS;
 
     int i;
     for( i=0;i<MAXPAT && pat[i];i++ ) {
         if ( pat[i] >= 'A' && pat[i] <= 'Z' ) {
-            result &= ~PCRE_CASELESS;  // clear flag
+            result &= ~ME_CASELESS;  // clear flag
             break;
         }
     }
@@ -78,9 +125,7 @@ int
 backsearch(int f, int n)
 {
     register int status = TRUE;
-    const char *error;
-    int erroffset;
-    pcre *re;
+    ME_RE *re;
     int pcre_options = 0;
 
     if( n == 0 ) n = 1;
@@ -92,7 +137,7 @@ backsearch(int f, int n)
      */
     if( (status = readpattern("search", &pat[0])) == TRUE ){
         pcre_options = check_pattern(pat);
-        re = pcre_compile(pat,0,&error,&erroffset,NULL);
+        re = me_compile(pat, 0);
         do {
             status = scanbw(re);
         } while( (--n > 0) && status );
@@ -120,7 +165,7 @@ back:
         match(es), go to last match.
  */
 int
-scanfw(pcre *re)
+scanfw(ME_RE *re)
 {
     LINE *curline;     // current line during scan
     int curoff;        // position within current line
@@ -135,7 +180,7 @@ scanfw(pcre *re)
 
     // Scan each character until we hit the head link record.
     while (!boundry(curline, curoff, FORWARD)) {
-        count = pcre_exec(re,NULL,curline->text,curused,curoff,0,ovector,30);
+        count = me_exec(re, curline->text, curused, curoff, ovector);
         if( count  >= 0) {  // a match
             curwp->dotp = curline;
             curwp->doto = ovector[1];
@@ -151,7 +196,7 @@ scanfw(pcre *re)
 }
 
 int
-scanbw(pcre *re)
+scanbw(ME_RE *re)
 {
     LINE *curline;     // current line during scan
     int curoff;        // position within current line
@@ -176,8 +221,8 @@ scanbw(pcre *re)
     while (!boundry(curline, curoff, BACKWARD)) {
         // skip down the line finding matches
         lastmatch_os = -1;
-        while ( count = 
-          pcre_exec(re,NULL,curline->text,curused,curoff,0,ovector,30) > 0 ) 
+        while ( count =
+          me_exec(re, curline->text, curused, curoff, ovector) > 0 ) 
         {
             if( count  >= 0) {  // a match
                 lastmatch_os = ovector[0];

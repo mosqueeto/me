@@ -10,32 +10,35 @@
 #For truly clean code, add -Wchar-subscripts -Winline -Wnested-externs 
 #-Wredundant-decls. 
 #
-# Dependencies (dynamic build):
+# Dependencies -- PCRE2 (default, Ubuntu 22.04+):
+#   sudo apt install libncurses5-dev libpcre2-dev
+# Dependencies -- PCRE1 (legacy, USE_PCRE=1):
 #   sudo apt install libncurses5-dev libpcre3-dev
-#
-# Dependencies (static build):
-#   sudo apt install libncurses-dev libpcre3-dev
-#   provides: /usr/lib/x86_64-linux-gnu/libtinfo.a
-#             /usr/lib/x86_64-linux-gnu/libpcre.a
-# for arch: sudo pacman -S ncurses pcre
+# for arch: sudo pacman -S ncurses pcre2
 
 PLATFORM=linux
 #PLATFORM=bsd
 CC = cc
+
+# Set USE_PCRE=1 to build against legacy libpcre (PCRE1); default is PCRE2.
+USE_PCRE ?= 2
+ifeq ($(USE_PCRE),2)
+PCRE_CFLAGS = -DUSE_PCRE2
+PCRE_LIBS   = -lpcre2-8
+PCRE_STATIC = /usr/lib/x86_64-linux-gnu/libpcre2-8.a
+else
+PCRE_CFLAGS =
+PCRE_LIBS   = -lpcre
+PCRE_STATIC = /usr/lib/x86_64-linux-gnu/libpcre.a
+endif
+
 # don't know how to make a static binary any more
 #CFLAGS=		-g -static
-CFLAGS= -g -Wno-pedantic -fPIC -Wno-implicit
-#LIBS= -lefence -ltermcap -lc -lncurses 
-#LIBS= -ltermcap -lc -lncurses -lpcre
-#
-LIBS= -lncurses -lpcre
-#for mac mini 
+CFLAGS= -g -Wno-pedantic -fPIC -Wno-implicit $(PCRE_CFLAGS)
+#LIBS= -lefence -ltermcap -lc -lncurses
+LIBS= -lncurses $(PCRE_LIBS)
+#for mac mini
 #LIBS= -ltermcap -lc -lncurses
-#sudo apt install libncurses5-dev
-#sudo apt install libpcre3 libpcre3-dev
-#
-#LIBS= -lc /usr/lib/x86_64-linux-gnu/libtinfo.so.6 -lpcre
-#LIBS= -lc -lncurses
 
 
 OFILES=		basic.o bf.o buffer.o crypt_buf.o display.o file.o  \
@@ -54,7 +57,7 @@ me:	$(OFILES)
 me.static: $(OFILES)
 		$(CC) -static $(CFLAGS) -L. $(OFILES) -lc \
 		    /usr/lib/x86_64-linux-gnu/libtinfo.a \
-		    /usr/lib/x86_64-linux-gnu/libpcre.a \
+		    $(PCRE_STATIC) \
 		    -Wl,--allow-multiple-definition \
 		    -o me.static
 

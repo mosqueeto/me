@@ -20,7 +20,8 @@ make tar       # Create me.tar distribution archive
 
 **Dependencies** (install if missing):
 ```sh
-sudo apt install libncurses5-dev libpcre3-dev
+sudo apt install libncurses5-dev libpcre2-dev   # default (PCRE2)
+sudo apt install libncurses5-dev libpcre3-dev   # legacy PCRE1: make USE_PCRE=1
 ```
 
 **Compiler flags**: `-g -Wno-pedantic -fPIC -Wno-implicit`
