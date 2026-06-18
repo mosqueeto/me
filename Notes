@@ -105,7 +105,23 @@ over in detail a couple of times.  all should be done in terms of open,
 close, read, write, instead of fopen etc.  ie, if possible, get rid of io 
 library.  (done)
 
-Need a better autosave/recovery mechanism -- perhaps the ",," files should 
-have a tiny structure attached at the front, and the program should view 
-these as potentially recoverable on start up -- ask "do you want to 
-recover...". 
+Need a better autosave/recovery mechanism -- perhaps the ",," files should
+have a tiny structure attached at the front, and the program should view
+these as potentially recoverable on start up -- ask "do you want to
+recover...".
+================================================================
+ME2.13: added a "-b" command line option to disable ",,filename" backups
+entirely -- useful for read-only/sandboxed directories or repos where the
+stray dotfiles are unwanted.
+
+Also fixed writeout() so that a failure to create or populate the backup
+file (e.g. permission denied on the directory) no longer aborts the save.
+It now just warns and writes the file anyway -- a missing backup shouldn't
+be worse than losing the edit.  This was the more serious of the two
+problems: previously, a directory you couldn't create files in (but could
+still write the existing file's data block) made the file effectively
+unsaveable.
+
+auto_backup now defaults to 1 unconditionally; the old root-only default
+was set but never actually consulted (the code that used it was
+commented out). 

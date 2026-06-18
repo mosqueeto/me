@@ -700,6 +700,33 @@ void wrap_insert(void)
     curwp->flag |= WFHARD;
 }
 
+extern  int getvcol(void);      // Get virtual column
+
+/* After self-inserting character "c", reflow the line if it was a space that
+   pushed the line past the right margin.  Shared by the keyboard self-insert
+   path (main.c) and character-driven file inserts (file.c) so both reflow
+   identically. */
+void wrap_check(int c)
+{
+    int saved_doto;
+    int over;
+
+    if (c != ' ' || rmarg <= 0) return;
+
+    // check end of line against margin, not cursor position --
+    // a space inserted mid-line can push the last word past rmarg
+    saved_doto = curwp->doto;
+    curwp->doto = llength(curwp->dotp);
+    over = getvcol() > rmarg;
+    curwp->doto = saved_doto;
+
+    if (curbp->mode & MDWRAP) {
+        if (over) wrap_insert();
+    } else {
+        if (over) wrapword(FALSE, 1);
+    }
+}
+
 /* After deleting a character in MDWRAP mode, pull words up from continuation
    lines as space permits, then cascade to do the same for subsequent lines.
    Cursor never moves. */

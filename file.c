@@ -13,6 +13,7 @@ The routines in this file handle the "file" abstraction.
 #include <fcntl.h>
 
 extern int set_mode(int);
+extern void wrap_check(int);    // reflow check after self-inserting a char
 #if CRYPT_S
 extern BYTE *md5string(BYTE *, long);
 extern BYTE *encrypt_buf(BYTE *, BYTE *, int *);
@@ -288,7 +289,7 @@ logit(bufp->bname);
     strcpy((char *)bufp->fname, (char *)fname);
 
     // actual mechanics of the read into current buffer
-    status = do_read(bufp,fname,&nline,&fz);
+    status = do_read(bufp,fname,&nline,&fz,0);
 
 logint("\ndo_read status: ",status);
     
@@ -332,37 +333,69 @@ int ifile(BYTE fname[])
     int  status = TRUE;
     long nline = 0;
     long fz = 0;
-    
+    int  char_driven;
+    struct stat sb;
+
     struct LINE *save_dotp;
 
     // prepare buffer
     curbp->flag |= BFCHG; // we have changed
     text_chg_flag++;      // disable dot macro
 
-if( dbug ) {                
+if( dbug ) {
     mlwrite("[inserting file %s]",fname);
     sleep(1);
 }
 
-    // back up a line and save the mark here
-    curwp->dotp = lback(curwp->dotp);
-    save_dotp = curwp->dotp;
-    curwp->doto = 0;
-    curwp->markp = curwp->dotp;
-    curwp->marko = 0;
+    // Small files are spliced in "as if typed", character by character, at
+    // the literal cursor position -- mid-line splices, wrap reflow, etc. all
+    // come for free.  Large files go through the faster bulk line-loader
+    // below, which always inserts whole new lines (see do_read): a deliberate
+    // seam -- big inserts tend to land at clean line boundaries anyway.
+    char_driven = ( stat((char *)fname,&sb) == 0 && sb.st_size <= 2 * rmarg );
 
-    status = do_read(curbp,fname,&nline,&fz);
+    if( char_driven ) {
+        // mark the start of the insertion, as the bulk path does below
+        curwp->markp = curwp->dotp;
+        curwp->marko = curwp->doto;
 
-    // advance to the next line and mark the window for changes
-    curwp->dotp = save_dotp;
-    curwp->dotp = lforw(curwp->dotp);
-    curwp->flag |= WFMODE;
-        
-    // copy window parameters back to the buffer structure
-    curbp->dotp = curwp->dotp;
-    curbp->doto = curwp->doto;
-    curbp->markp = curwp->markp;
-    curbp->marko = curwp->marko;
+        // do_read uses curbp->dotp/doto as the insertion point; sync from the window
+        curbp->dotp = curwp->dotp;
+        curbp->doto = curwp->doto;
+
+        status = do_read(curbp,fname,&nline,&fz,1);
+
+        // linsert/lnewline track dot as they go, so it's already sitting at
+        // the end of the inserted text -- just propagate it back
+        curwp->flag |= WFMODE;
+        curbp->markp = curwp->markp;
+        curbp->marko = curwp->marko;
+    } else {
+        // back up a line and save the mark here
+        curwp->dotp = lback(curwp->dotp);
+        save_dotp = curwp->dotp;
+        curwp->doto = 0;
+        curwp->markp = curwp->dotp;
+        curwp->marko = 0;
+
+        // do_read uses curbp->dotp as the insertion point; sync it from the window
+        curbp->dotp = curwp->dotp;
+        curbp->doto = 0;
+
+        status = do_read(curbp,fname,&nline,&fz,1);
+
+        // land dot at the end of the inserted text: the bulk loader always
+        // creates whole new lines, so that's the end of the last one of those
+        curwp->dotp = curbp->dotp;
+        curwp->doto = curbp->dotp->used;
+        curwp->flag |= WFMODE;
+
+        // copy window parameters back to the buffer structure
+        curbp->dotp = curwp->dotp;
+        curbp->doto = curwp->doto;
+        curbp->markp = curwp->markp;
+        curbp->marko = curwp->marko;
+    }
 
     if( status == FIOERR ){
         return (FALSE);
@@ -379,7 +412,7 @@ emacs "buffer".  This is so we can decrypt (or otherwise preprocess the
 file, though the only processing so far is decrypting.)
 */
 
-int do_read(BUFFER *bp, BYTE fname[], long *nlines, long *filesize)
+int do_read(BUFFER *bp, BYTE fname[], long *nlines, long *filesize, int insert)
 {
     LINE   *lp;
     int  status = TRUE;
@@ -406,7 +439,7 @@ if( dbug ) {
     sleep(1);
 }
     // open file
-    if( ( fd = ffropen(fname) ) < 0 ) {
+    if( ( fd = ffropen(fname, insert) ) < 0 ) {
         if( io_error != ENOENT )
         return FIOERR; // ffropen leaves message in status line
     }
@@ -456,6 +489,40 @@ logit(fname);
     // tracking vars
     rlen = bz;
     fbp = file_buf;
+
+    // Character-driven insert path (small files, see ifile): splice the
+    // bytes into the buffer "as if typed" at dot, via the same primitives
+    // (linsert/lnewline, wrap_check) the keyboard self-insert path uses, so
+    // mid-line splices and wrap reflow just work.  Unlike the bulk path
+    // below, these lines own their own text storage, so file_buf is freed
+    // here rather than being kept alive via L_EXT.
+    if( insert && bz <= 2 * rmarg ) {
+        long k;
+
+        nline = 0;
+        for( k = 0; k < bz; k++ ) {
+            int ch = fbp[k] & 0xFF;
+
+            if( ch == '\n' ) {
+                if( lnewline() == FALSE ) {
+                    free(file_buf);
+                    return FIOERR;
+                }
+                nline++;
+            } else {
+                if( linsert(1,ch) == FALSE ) {
+                    free(file_buf);
+                    return FIOERR;
+                }
+                wrap_check(ch);
+            }
+        }
+
+        free(file_buf);
+        *nlines = nline;
+        return FIOSUC;
+    }
+
     // go through buf, pulling out lines and putting them
     // in the BUFFER
     len = 0;
@@ -743,35 +810,36 @@ int writeout(BYTE *fn, int update)
         
         // update mode preserve the inode?
         if( update ) {
-            unlink((char *)backupname); // delete previous backup, if any
-            o_umask = umask(0);  // must be able to recreate any modes
-            ofd = open( (char *)backupname, O_WRONLY|O_CREAT|O_EXCL, mode );
-            o_umask = umask(o_umask);
+            if( auto_backup ) {
+                unlink((char *)backupname); // delete previous backup, if any
+                o_umask = umask(0);  // must be able to recreate any modes
+                ofd = open( (char *)backupname, O_WRONLY|O_CREAT|O_EXCL, mode );
+                o_umask = umask(o_umask);
 
-            // if we can't create backup, don't write the file; return
-            if( ofd < 0 ) {
-                io_error = errno;
-                mlwrite("Error creating backup file");
-                sleep(1);
-                mlwrite(strerror(io_error));
-                return( FIOSUC ); // don't write the file
-            }
+                // if we can't create the backup, warn but write the
+                // file anyway -- a missing backup shouldn't block a save
+                if( ofd < 0 ) {
+                    io_error = errno;
+                    mlwrite("Warning: couldn't create backup file: %s",
+                            strerror(io_error));
+                    sleep(1);
+                }
+                else {
+                    // duplicate the metadata for the backup file
+                    chown( (char *)backupname, statbuf.st_uid, statbuf.st_gid );
 
-            // duplicate the metadata for the backup file
-            chown( (char *)backupname, statbuf.st_uid, statbuf.st_gid );
-
-            if( fdcopy( nfd,ofd,statbuf.st_size ) < 0 ) {
-                io_error = errno;
-                mlwrite("Error copying to backup file");
-                sleep(1);
-                mlwrite(strerror(io_error));
-                close( nfd );
-                close( ofd );
-                return( FIOSUC );
+                    if( fdcopy( nfd,ofd,statbuf.st_size ) < 0 ) {
+                        io_error = errno;
+                        mlwrite("Warning: error copying to backup file: %s",
+                                strerror(io_error));
+                        sleep(1);
+                        unlink((char *)backupname); // remove incomplete backup
+                    }
+                    close(ofd);
+                }
             }
             close(nfd);
 
-            // ok, backup created and successfully written
             // now reopen the file and copy changed data over it
             // note that the code for the two modes after this open
             // is the same
@@ -781,7 +849,6 @@ int writeout(BYTE *fn, int update)
                 mlwrite("Error rewriting original file");
                 sleep(1);
                 mlwrite(strerror(io_error));
-                close( ofd );
                 return( FIOSUC );
             }
         } // end update mode code
@@ -889,7 +956,6 @@ int writeout(BYTE *fn, int update)
         }
     }
 
-//    if(! auto_backup ) unlink((char *)backupname);
     return (TRUE);
 }
 
@@ -986,7 +1052,7 @@ int filename(int f, int n)
 //  Open a file for reading.
 //
 int
-ffropen(BYTE *fn)
+ffropen(BYTE *fn, int insert)
 {
     int fd;
 
@@ -1003,7 +1069,9 @@ ffropen(BYTE *fn)
     }
 
     // status checks, for meaningful errors...
-    if( ffget_stat(fd,0) == FIOERR ) return FIOERR;
+    // insert=1: use flag 3 (stat only, no registration) so the file is not
+    // tracked in file_data[] and won't produce false "already open" warnings
+    if( ffget_stat(fd, insert ? 3 : 0) == FIOERR ) return FIOERR;
 
     if( S_ISDIR(statbuf.st_mode) ) {
         mlwrite("%s: directory",fn);
@@ -1038,12 +1106,14 @@ if( dbug ) {
     mlwrite("stat.. file_sz: %d",file_sz);
     sleep(1);
 }
+    if( flag == 3 ) return FIOSUC;  // insert: stat only, no registration
+
     for( i=0; i<last_file; i++ ) {
         if( statbuf.st_ino == file_data[i]->st_ino ) {
             if( flag == 0 ) {  // reading
                 mlwrite("Warning: file (inode %d) already open",
                     statbuf.st_ino);
-                sleep(1);
+                sleep(3);
                 // update earlier data
                 memcpy(file_data[i],&statbuf,sizeof(statbuf));
                 return FIOSUC;
