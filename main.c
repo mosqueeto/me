@@ -186,9 +186,11 @@ Version History:
         write ~~<filename> files for all modified buffers
 2.13--  added -b option to disable ",,filename" backups; failure to create
         a backup no longer aborts the save (warns and writes anyway)
+2.14--  port PCRE search from PCRE1 to PCRE2; Makefile USE_PCRE=1 fallback
+        for legacy systems (Ubuntu 26.04+)
 */
 
-#define VERSION_NAME "ME2.13"
+#define VERSION_NAME "ME2.14"
 
 #include <stdio.h>
 #include <stdlib.h>
