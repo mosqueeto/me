@@ -549,8 +549,9 @@ logit(fname);
         }
         file_buf = decrypted_buf;
 #else
-    mlwrite("encrypted file; decryption not supported on this platform");
-    goto out;
+        mlwrite("encrypted file; encryption support not built in (CRYPT_S=0)");
+        free(file_buf);
+        return FIOERR;
 #endif
     }
 

@@ -9,14 +9,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Build Commands
 
 ```sh
-make me        # Build the editor
-make clean     # Remove object files and backups (*~, *.~N~ files)
-make crypt     # Build standalone encryption utility
-make efme      # Build with Electric Fence for memory debugging
-make pecos     # Install to /home/kent/bin/ (local machine)
-make songbird  # Install to /usr/local/bin/
-make tar       # Create me.tar distribution archive
+make me            # Build the editor
+make CRYPT_S=0 me  # Build without encryption (no OpenSSL/-lcrypto dependency)
+make clean         # Remove object files and backups (*~, *.~N~ files)
+make crypt         # Build standalone encryption utility
+make efme          # Build with Electric Fence for memory debugging
+make pecos         # Install to /home/kent/bin/ (local machine)
+make songbird      # Install to /usr/local/bin/
+make tar           # Create me.tar distribution archive
 ```
+`CRYPT_S=0` compiles encryption out (the `#if CRYPT_S` code in `crypt_buf.c` etc.); the
+editor then reports "not built in" for encrypt/decrypt and needs no libcrypto. Switching
+`CRYPT_S` requires `make clean` first, since it is baked into every object file.
 
 **Dependencies** (install if missing):
 ```sh

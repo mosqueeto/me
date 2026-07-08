@@ -1,5 +1,9 @@
-//#define CRYPT_S 0       // support encryption commands
+// Encryption support.  Defaults on; build with `make CRYPT_S=0' to compile it
+// out (no OpenSSL dependency -- lets a fully static binary link without
+// libcrypto.a).  The Makefile passes -DCRYPT_S=0/1; honor it if present.
+#ifndef CRYPT_S
 #define CRYPT_S 1       // support encryption commands
+#endif
 #define CVMVAS  1       // C-V, M-V arg. in screens.
 #define NFILEN  80      // # of bytes, file name
 #define NBUFN   16      // # of bytes, buffer name
