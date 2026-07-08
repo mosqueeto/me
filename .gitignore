@@ -1,3 +1,9 @@
 *.[oa]
+# backup droppings: legacy ",," and the current Emacs tilde forms
 ,,*
-/home/kent/db/git/me/me
+*~
+*.~[0-9]*~
+# build artifacts
+/me
+/me.static
+/me.tar
