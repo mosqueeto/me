@@ -1373,7 +1373,10 @@ void logit( BYTE *s )
     int i;
     if( do_log ) {
         if( !log_path[0] ) sprintf(log_path, "/tmp/log.me.%d", (int)getuid());
-        lfd = open(log_path, O_CREAT|O_APPEND|O_WRONLY,0600);
+        /* O_NOFOLLOW: the log path is predictable and lives in world-writable
+       /tmp; refuse to follow a symlink planted there (would redirect our
+       writes into a victim-chosen file). */
+    lfd = open(log_path, O_CREAT|O_APPEND|O_WRONLY|O_NOFOLLOW,0600);
         if( lfd < 0 ) die("open of log file failed\n");
         if( (i = write(lfd,(char *)s,strlen((char *)s)) ) < 0 )
             die("write failed\n");
@@ -1386,7 +1389,10 @@ void logchr( int c )
     BYTE buf[8];
     if( !do_log ) return;
     if( !log_path[0] ) sprintf(log_path, "/tmp/log.me.%d", (int)getuid());
-    lfd = open(log_path, O_CREAT|O_APPEND|O_WRONLY,0600);
+    /* O_NOFOLLOW: the log path is predictable and lives in world-writable
+       /tmp; refuse to follow a symlink planted there (would redirect our
+       writes into a victim-chosen file). */
+    lfd = open(log_path, O_CREAT|O_APPEND|O_WRONLY|O_NOFOLLOW,0600);
     if( lfd < 0 ) die("open of log file failed\n");
     buf[0] = c & 0xff;
     if( write(lfd,buf,1) < 0 ) die("logchr: write failed\n");
@@ -1398,7 +1404,10 @@ void logint( BYTE *s, int i )
     BYTE buf[256];
     if( !do_log ) return;
     if( !log_path[0] ) sprintf(log_path, "/tmp/log.me.%d", (int)getuid());
-    lfd = open(log_path, O_CREAT|O_APPEND|O_WRONLY,0600);
+    /* O_NOFOLLOW: the log path is predictable and lives in world-writable
+       /tmp; refuse to follow a symlink planted there (would redirect our
+       writes into a victim-chosen file). */
+    lfd = open(log_path, O_CREAT|O_APPEND|O_WRONLY|O_NOFOLLOW,0600);
     if( lfd < 0 ) die("open of log file failed\n");
     sprintf((char *)buf,"%s %d\n",(char *)s,i);
     if( write(lfd,(char *)buf,strlen((char *)buf)) < 0 )
