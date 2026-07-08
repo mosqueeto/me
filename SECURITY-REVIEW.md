@@ -163,8 +163,8 @@ fresh name). `sprintf` into `log_path[64]` is safe here (bounded content) but `s
 - `f1.c`, `ofile.c`, `file.c.good` are stale duplicates of the file/crypto logic, not in the Makefile.
   They contain older variants of the same routines and are confusing/dangerous if ever re-linked.
   Move to `old/` or delete.  **[DONE 2026-07-07 — removed via `git rm`.]**
-  Note: `oldsearch.c` and `ran_vect.c` are also unreferenced dead code (not in the build, not
-  included anywhere) but were left in place as they fall outside this finding; candidates for removal.
+  Note: `oldsearch.c` and `ran_vect.c` were also unreferenced dead code (not in the build, not
+  included anywhere); removed 2026-07-08.
 - `decrypt_buf` trusts its caller for length sanity. It's currently safe only because the call site
   guards `fz >= 48` (file.c:469) and `slurpfile` over-allocates by 128 bytes (file.c:95). If either
   invariant changes, a malformed encrypted file could underflow (`nb[nbx-1]` at crypt_buf.c:155) or
