@@ -1229,7 +1229,8 @@ me [options] file1 file2 ...\n\
     -w        wrap mode on for all buffers\n\
     -m        enable mouse reporting\n\
     -b        disable \",,filename\" backup files\n\
-    -i <path> extra init file or .me directory (read after ~/.me and ./.me)\n\
+    -i <path> extra init file or .me dir; the only way to load a project-local\n\
+              init -- ~/.me is trusted, but ./.me is never auto-read\n\
     -D <n>    set debug level\n\
 ");
     exit(0);
@@ -1292,15 +1293,15 @@ int edinit(BYTE bname[])
     rest_kbdm(kbm_file);
     read_init_file(rc_dir);
 
-    /* Read ./.me/init if it exists and is a different directory than ~/.me */
-    {
-        struct stat st_home, st_local;
-        if (stat((char *)rc_dir, &st_home) == 0 &&
-            stat(".me", &st_local) == 0 &&
-            (st_home.st_dev != st_local.st_dev ||
-             st_home.st_ino != st_local.st_ino))
-            read_init_file((BYTE *)".me");
-    }
+    /*
+     * SECURITY: ME deliberately does NOT auto-read ./.me/init from the current
+     * directory.  Init files can bind keys to shell commands (bind KEY | cmd,
+     * def, macro), so honoring a ./.me planted in an untrusted directory (a
+     * cloned repo, an unpacked tarball) would let that directory run arbitrary
+     * commands on the next keypress -- the vim-modeline class of bug.  Only the
+     * user's own ~/.me/init is trusted implicitly.  To opt into a project-local
+     * init, pass it explicitly:  me -i .me   (or  me -i ./.me/init ).
+     */
 
     escape_pressed = 0;
 

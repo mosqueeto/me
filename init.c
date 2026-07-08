@@ -642,7 +642,9 @@ parse_init_fp(FILE *fp, const char *macro_dir)
 }
 
 /*
- * Read rc_dir/init.  Called from edinit() for ~/.me and ./.me.
+ * Read rc_dir/init.  Called from edinit() for the trusted ~/.me only.
+ * Project-local init (e.g. ./.me) is never auto-read; see the SECURITY
+ * note in edinit() and use -i to load one explicitly.
  */
 void
 read_init_file(BYTE *rc_dir)
