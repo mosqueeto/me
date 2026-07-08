@@ -188,9 +188,22 @@ Version History:
         a backup no longer aborts the save (warns and writes anyway)
 2.14--  port PCRE search from PCRE1 to PCRE2; Makefile USE_PCRE=1 fallback
         for legacy systems (Ubuntu 26.04+)
+2.15--  security review hardening:
+        - no longer auto-reads ./.me/init from the cwd (was arbitrary code
+          execution from an untrusted directory); use -i to load one explicitly
+        - new #ME2.00$ encrypted file format: AES-256-GCM + scrypt with a
+          per-file salt (OpenSSL/-lcrypto); legacy #ME1.42$ files still decrypt
+          and upgrade to the new format on save
+        - fixed unbounded macro-replay copy (mlreply1) and emergency-save
+          filename overflow (sig_handler)
+        - fixed encryptb password change losing residual bytes (data loss)
+        - debug log opened O_NOFOLLOW (predictable /tmp path)
+        - backups use the Emacs tilde convention (foo~); "set backups N" keeps
+          N numbered versions (foo.~k~); replaces the ",,filename" scheme
+        - removed dead files f1.c, ofile.c, file.c.good
 */
 
-#define VERSION_NAME "ME2.14"
+#define VERSION_NAME "ME2.15"
 
 #include <stdio.h>
 #include <stdlib.h>
