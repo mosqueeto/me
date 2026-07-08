@@ -10,11 +10,22 @@
 #For truly clean code, add -Wchar-subscripts -Winline -Wnested-externs 
 #-Wredundant-decls. 
 #
-# Dependencies -- PCRE2 (default, Ubuntu 22.04+):
-#   sudo apt install libncurses5-dev libpcre2-dev
-# Dependencies -- PCRE1 (legacy, USE_PCRE=1):
-#   sudo apt install libncurses5-dev libpcre3-dev
-# for arch: sudo pacman -S ncurses pcre2
+# Dependencies:
+#   * ncurses         -- terminal handling
+#   * PCRE2 (or PCRE1 with USE_PCRE=1) -- regex search/replace
+#   * OpenSSL libcrypto -- AES-256-GCM + scrypt for the #ME2.00$ encrypted
+#     file format (crypt_buf.c).  Legacy #ME1.42$ files decrypt without it,
+#     but the link still requires -lcrypto; it is not optional at build time.
+#
+# Install the dev packages:
+#   Debian/Ubuntu (PCRE2, default):
+#     sudo apt install libncurses5-dev libpcre2-dev libssl-dev
+#   Debian/Ubuntu (PCRE1, build with USE_PCRE=1):
+#     sudo apt install libncurses5-dev libpcre3-dev libssl-dev
+#   Arch:
+#     sudo pacman -S ncurses pcre2 openssl
+#   Fedora/RHEL:
+#     sudo dnf install ncurses-devel pcre2-devel openssl-devel
 
 PLATFORM=linux
 #PLATFORM=bsd
@@ -36,7 +47,8 @@ endif
 #CFLAGS=		-g -static
 CFLAGS= -g -Wno-pedantic -fPIC -Wno-implicit $(PCRE_CFLAGS)
 #LIBS= -lefence -ltermcap -lc -lncurses
-LIBS= -lncurses $(PCRE_LIBS)
+# -lcrypto: OpenSSL, for the #ME2.00$ encrypted file format (see crypt_buf.c)
+LIBS= -lncurses $(PCRE_LIBS) -lcrypto
 #for mac mini
 #LIBS= -ltermcap -lc -lncurses
 

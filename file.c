@@ -465,8 +465,11 @@ logit(fname);
 
     bz = fz = *filesize;  // assume buffer size is same as file size, to start
     
-    // if it is an encrypted file, try to decrypt it
-    if( fz >= 48 && ! strncmp( (char *)file_buf,ME_MAGIC,strlen(ME_MAGIC) ) ) {
+    // if it is an encrypted file, try to decrypt it (legacy #ME1.42$ or
+    // current #ME2.00$ -- decrypt_buf dispatches on the magic)
+    if( fz >= 48 &&
+        ( ! strncmp( (char *)file_buf,ME_MAGIC, strlen(ME_MAGIC) ) ||
+          ! strncmp( (char *)file_buf,ME_MAGIC2,strlen(ME_MAGIC2) ) ) ) {
 #if CRYPT_S
         p = NULL;
         p = getpw(0);

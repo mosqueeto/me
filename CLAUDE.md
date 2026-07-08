@@ -20,12 +20,15 @@ make tar       # Create me.tar distribution archive
 
 **Dependencies** (install if missing):
 ```sh
-sudo apt install libncurses5-dev libpcre2-dev   # default (PCRE2)
-sudo apt install libncurses5-dev libpcre3-dev   # legacy PCRE1: make USE_PCRE=1
+sudo apt install libncurses5-dev libpcre2-dev libssl-dev   # default (PCRE2)
+sudo apt install libncurses5-dev libpcre3-dev libssl-dev   # legacy PCRE1: make USE_PCRE=1
+# Arch:   sudo pacman -S ncurses pcre2 openssl
 ```
+OpenSSL (`libcrypto`) is required to build: it provides AES-256-GCM + scrypt for the
+`#ME2.00$` encrypted file format. See the Makefile header for per-distro install lines.
 
 **Compiler flags**: `-g -Wno-pedantic -fPIC -Wno-implicit`
-**Libraries**: `-lc -ltermcap -lpcre`
+**Libraries**: `-lncurses -lpcre2-8 -lcrypto`
 
 All `.c` files depend on `ed.h`, `search.h`, and `crypt.h` — changing any header triggers a full rebuild.
 

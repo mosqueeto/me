@@ -45,7 +45,8 @@
 
 #define TAB 0x09    // tab character
 
-#define ME_MAGIC "#ME1.42$" // magic prefix for me files
+#define ME_MAGIC "#ME1.42$" // legacy magic: Blowfish-CBC, raw-key, plaintext-MD5 (read-only)
+#define ME_MAGIC2 "#ME2.00$" // current magic: AES-256-GCM, scrypt KDF, per-file salt
 #define ME_SECRET "5fa49404e62a2f71ccee2640ff26b851"
 
 #define BYTE unsigned char

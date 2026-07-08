@@ -174,6 +174,8 @@ encryptb(int f, int n)
     if( !p ) return TRUE;
     p1 = curbp->passwd;
     while( *p ) *p1++ = *p++;
+    *p1 = '\0';   // terminate: a shorter new password must not inherit
+                  // residual bytes from a longer previous one
     filewrite(f,n);
 #else
     mlwrite("encryption not supported on this platform");
