@@ -32,19 +32,21 @@ PLATFORM=linux
 CC = cc
 
 # Set USE_PCRE=1 to build against legacy libpcre (PCRE1); default is PCRE2.
+# The *_STATIC vars auto-detect the static archive across common distro layouts
+# (Arch /usr/lib, Debian /usr/lib/<triplet>, Fedora /usr/lib64); override on the
+# command line if yours lives elsewhere.
 USE_PCRE ?= 2
 ifeq ($(USE_PCRE),2)
 PCRE_CFLAGS = -DUSE_PCRE2
 PCRE_LIBS   = -lpcre2-8
-PCRE_STATIC = /usr/lib/x86_64-linux-gnu/libpcre2-8.a
+PCRE_STATIC = $(firstword $(wildcard /usr/lib/libpcre2-8.a /usr/lib/x86_64-linux-gnu/libpcre2-8.a /usr/lib64/libpcre2-8.a))
 else
 PCRE_CFLAGS =
 PCRE_LIBS   = -lpcre
-PCRE_STATIC = /usr/lib/x86_64-linux-gnu/libpcre.a
+PCRE_STATIC = $(firstword $(wildcard /usr/lib/libpcre.a /usr/lib/x86_64-linux-gnu/libpcre.a /usr/lib64/libpcre.a))
 endif
 
-# don't know how to make a static binary any more
-#CFLAGS=		-g -static
+# static binary: use the `me.static' target below (needs static archives)
 CFLAGS= -g -Wno-pedantic -fPIC -Wno-implicit $(PCRE_CFLAGS)
 #LIBS= -lefence -ltermcap -lc -lncurses
 # -lcrypto: OpenSSL, for the #ME2.00$ encrypted file format (see crypt_buf.c)
@@ -66,10 +68,38 @@ HFILES=	 ed.h search.h crypt.h
 me:	$(OFILES)
 		$(CC) $(CFLAGS) -L. $(OFILES) $(LIBS) -o me
 
+# Fully static build.  Needs a static archive (.a) for EVERY dependency:
+# OpenSSL libcrypto, ncurses, and PCRE.  Many distros ship these only in a
+# -static/-devel package, and some (notably Arch) do not package libcrypto.a
+# at all -- there a fully static build of the encryption feature is not
+# possible without building OpenSSL statically yourself.  Archives are
+# auto-detected below; override any *_STATIC var to point at yours.
+#   Debian/Ubuntu: apt install libssl-dev libncurses-dev libpcre2-dev  (ship .a)
+#   Fedora/RHEL:   dnf install openssl-static ncurses-static pcre2-static
+CRYPTO_STATIC = $(firstword $(wildcard /usr/lib/libcrypto.a /usr/lib/x86_64-linux-gnu/libcrypto.a /usr/lib64/libcrypto.a))
+CURSES_STATIC = $(firstword $(wildcard /usr/lib/libncursesw.a /usr/lib/libncurses.a /usr/lib/x86_64-linux-gnu/libncursesw.a /usr/lib64/libncursesw.a /usr/lib/libncursesw_g.a))
+# extra archives libcrypto/ncurses/glibc pull in when linked statically.
+# A static libcrypto may additionally need -lz (and sometimes -lzstd/-lbrotli),
+# depending on how your OpenSSL was built -- append them via STATIC_EXTRA if the
+# link reports undefined inflate/ZSTD_/Brotli symbols.
+TINFO_STATIC  = $(wildcard /usr/lib/libtinfo.a /usr/lib/x86_64-linux-gnu/libtinfo.a /usr/lib64/libtinfo.a)
+STATIC_EXTRA  = -lpthread -ldl
+
 me.static: $(OFILES)
-		$(CC) -static $(CFLAGS) -L. $(OFILES) -lc \
-		    /usr/lib/x86_64-linux-gnu/libtinfo.a \
-		    $(PCRE_STATIC) \
+		@err=0; \
+		if [ ! -f "$(CRYPTO_STATIC)" ]; then echo "  missing: libcrypto.a (OpenSSL) -- override CRYPTO_STATIC=/path"; err=1; fi; \
+		if [ ! -f "$(CURSES_STATIC)" ]; then echo "  missing: libncurses(w).a -- override CURSES_STATIC=/path"; err=1; fi; \
+		if [ ! -f "$(PCRE_STATIC)" ];   then echo "  missing: libpcre2-8.a -- override PCRE_STATIC=/path"; err=1; fi; \
+		if [ $$err -ne 0 ]; then \
+		    echo "me.static: cannot link statically -- static archive(s) above are absent."; \
+		    echo "  Install the static/-dev package, or point the *_STATIC var at your .a."; \
+		    echo "  (Arch does not package libcrypto.a; a fully static build with encryption"; \
+		    echo "   is not possible there without a self-built static OpenSSL.)"; \
+		    exit 1; \
+		fi
+		$(CC) -static $(CFLAGS) -L. $(OFILES) \
+		    $(CURSES_STATIC) $(TINFO_STATIC) $(PCRE_STATIC) $(CRYPTO_STATIC) \
+		    $(STATIC_EXTRA) -lc \
 		    -Wl,--allow-multiple-definition \
 		    -o me.static
 
