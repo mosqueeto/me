@@ -777,8 +777,12 @@ int mlreply1(BYTE *prompt, BYTE *buf, int nbuf, int passwd)
 
     // kb macro case
     if( kbdmop != NULL) {
+        // consume the whole token so macro playback stays in sync, but never
+        // store past the caller's buffer (buf holds nbuf bytes; a crafted or
+        // corrupt macro must not overflow it)
         while( (c = *kbdmop++) != '\0')
-            buf[cpos++] = c;
+            if( cpos < nbuf-1 )
+                buf[cpos++] = c;
         buf[cpos] = 0;
         if( buf[0] == 0)
             return (FALSE);

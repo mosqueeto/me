@@ -593,16 +593,20 @@ BYTE *help_txt;
 
 void sig_handler(int i)
 {
-    BYTE fname[80];
-    BYTE s[80];
+    BYTE fname[NFILEN*2];
+    BYTE dbuf[NFILEN];       // dirname() may modify its argument...
+    BYTE bbuf[NFILEN];       // ...and basename() too, so give each its own copy
 
+    (void)i;
     curbp = bheadp;
     while( curbp != NULL ) {
         if( (curbp->flag&BFTEMP) == 0 ) {   // Real file.
-            strncpy((char *)s,(char *)curbp->fname,80);
-            sprintf((char *)fname,"%s/~~%s",
-                    dirname((char *)s),basename((char *)s));
-            i++; // avoid warning?
+            strncpy((char *)dbuf,(char *)curbp->fname,sizeof(dbuf)-1);
+            dbuf[sizeof(dbuf)-1] = '\0';
+            strncpy((char *)bbuf,(char *)curbp->fname,sizeof(bbuf)-1);
+            bbuf[sizeof(bbuf)-1] = '\0';
+            snprintf((char *)fname,sizeof(fname),"%s/~~%s",
+                    dirname((char *)dbuf),basename((char *)bbuf));
             writeout(fname,1);
             curbp->flag &= ~BFCHG;
         }
