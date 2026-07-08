@@ -635,7 +635,8 @@ int main(int argc, char *argv[])
     (BYTE *)fnames[256];
 
     vi_mode = FALSE;
-    auto_backup = 1;    // create ",,filename" backups by default
+    auto_backup = 1;    // create "filename~" backups by default
+    backup_versions = 1; // single backup; "set backups N" keeps N numbered ones
 
 logit("\n\nme starting...\n");
 logit("argv[0]: ");

@@ -10,7 +10,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```sh
 make me        # Build the editor
-make clean     # Remove object files and backups (,,* files)
+make clean     # Remove object files and backups (*~, *.~N~ files)
 make crypt     # Build standalone encryption utility
 make efme      # Build with Electric Fence for memory debugging
 make pecos     # Install to /home/kent/bin/ (local machine)
@@ -51,7 +51,7 @@ The editor uses a linked-list line model. The core data structures are defined i
 | `display.c` | Screen redisplay engine (virtual/real screen diffing) |
 | `tcap.c` / `termio.c` | Terminal capability queries and raw-mode I/O |
 | `buffer.c` / `line.c` | Buffer/line allocation and manipulation primitives |
-| `file.c` | File read/write, backup files (prefix `,,`), external-change detection |
+| `file.c` | File read/write, backup files (Emacs tilde: `foo~` or numbered `foo.~N~`), external-change detection |
 | `crypt_buf.c` | Blowfish-encrypted file format; magic prefix `#ME1.42$` |
 | `bf.c` / `md5.c` | Blowfish cipher and MD5 (used for key derivation) |
 | `search.c` / `pcre.c` | Search/replace; wraps PCRE for regex |
@@ -90,7 +90,7 @@ The `KEYTAB` typedef was moved from `main.c` into `ed.h` (v2.00) so `init.c` can
 ### Init file syntax
 ```
 # comment
-set varname value          # known vars: rmarg/rm, lmarg/lm, tabsize/t, softtabs/T
+set varname value          # known vars: rmarg/rm, lmarg/lm, tabsize/t, softtabs/T, backups/bk
 bind KEYNAME built-in      # rebind to existing command by name (names from keytab[].name)
 bind KEYNAME | shell cmd   # bind key to pipe current buffer through shell command
 macro macroname            # load ~/.me/macros/macroname as the keystroke macro at startup

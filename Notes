@@ -124,4 +124,18 @@ unsaveable.
 
 auto_backup now defaults to 1 unconditionally; the old root-only default
 was set but never actually consulted (the code that used it was
-commented out). 
+commented out).
+================================================================
+ME2.14+: backup files switched from the ",,filename" prefix kludge to the
+Emacs tilde convention.  Default is a single "filename~" in the same
+directory (same benefits as before: same filesystem, ownership preserved).
+"set backups N" in the init file (or "set bk N") switches to numbered
+versions "filename.~1~", "filename.~2~", ... keeping the newest N and
+pruning older ones -- history without unbounded clutter.  "set backups 0"
+(or -b) disables backups.  Naming/pruning live in makebackupname() and
+prune_backups() in file.c; the knob is backup_versions (ed.h), parsed in
+init_set() (init.c).
+
+The autosave/recovery idea above (attach a tiny header to the backup and
+offer "recover?" on startup) is still open, and would layer cleanly on the
+new scheme -- a numbered backup plus a recovery marker is a natural fit.

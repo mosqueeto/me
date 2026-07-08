@@ -11,6 +11,8 @@ The routines in this file handle the "file" abstraction.
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <dirent.h>
+#include <ctype.h>
 
 extern int set_mode(int);
 extern void wrap_check(int);    // reflow check after self-inserting a char
@@ -38,33 +40,96 @@ int io_error = 0;
 BYTE curfn[NFILEN];
 
 //
-//  figure out a filename for a backup
+//
+// Backup files use the Emacs tilde convention:
+//   single  (backup_versions <= 1):  "foo.txt~"
+//   numbered(backup_versions  > 1):  "foo.txt.~1~", "foo.txt.~2~", ...
+// Numbered mode keeps the newest backup_versions and prunes the rest.
+//
+
+// Enumerate existing numbered backups "<fn>.~N~"; fill vers[] with the N
+// values found (up to maxv) and return the count.  Scans fn's directory.
+static int
+list_backup_versions(const char *fn, int *vers, int maxv)
+{
+    char        dir[1024];
+    const char *base;
+    const char *slash = strrchr(fn, '/');
+    DIR        *d;
+    struct dirent *e;
+    size_t      blen;
+    int         n = 0;
+
+    if( slash ) {
+        size_t dl = (size_t)(slash - fn);
+        if( dl >= sizeof(dir) ) dl = sizeof(dir) - 1;
+        memcpy(dir, fn, dl);
+        dir[dl] = '\0';
+        base = slash + 1;
+    } else {
+        dir[0] = '.'; dir[1] = '\0';
+        base = fn;
+    }
+    blen = strlen(base);
+
+    if( !(d = opendir(dir)) ) return 0;
+    while( (e = readdir(d)) ) {
+        const char *nm = e->d_name;
+        const char *p;
+        int v = 0;
+        if( strncmp(nm, base, blen) != 0 ) continue;   // "<base>"
+        p = nm + blen;
+        if( p[0] != '.' || p[1] != '~' ) continue;      // ".~"
+        p += 2;
+        if( !isdigit((unsigned char)*p) ) continue;     // at least one digit
+        while( isdigit((unsigned char)*p) ) v = v*10 + (*p++ - '0');
+        if( p[0] != '~' || p[1] != '\0' ) continue;     // "~" and end
+        if( n < maxv ) vers[n++] = v;
+    }
+    closedir(d);
+    return n;
+}
+
+// Delete all but the newest `keep` numbered backups of fn.
+static void
+prune_backups(const char *fn, int keep)
+{
+    int  vers[512];
+    int  n, i, j;
+    char path[1100];
+
+    if( keep < 1 ) keep = 1;
+    n = list_backup_versions(fn, vers, 512);
+    // selection sort, descending (n is tiny)
+    for( i = 0; i < n; i++ )
+        for( j = i+1; j < n; j++ )
+            if( vers[j] > vers[i] ) { int t = vers[i]; vers[i] = vers[j]; vers[j] = t; }
+    for( i = keep; i < n; i++ ) {
+        snprintf(path, sizeof(path), "%s.~%d~", fn, vers[i]);
+        unlink(path);
+    }
+}
+
+//
+//  figure out a filename for a backup (result left in the global backupname)
 //
 int makebackupname(BYTE *fn)
 {
-    int nbytes,first;
-    BYTE *p1,*p2;
-
-    if( (nbytes=strlen((char *)fn)) > 1020 ){
+    if( strlen((char *)fn) > sizeof(backupname) - 16 ) {
         mlwrite("WARNING: backup filename too long");
         sleep(1);
         return( 0 );
     }
-    // prepend ",," to the filename
-    first = 1;
-    p2 = fn + nbytes;
-    p1 = backupname + nbytes + 2;
-    while( p2 >= fn ){
-        if( first && (*p2 == '/') ){
-            first = 0;
-            *p1-- = ',';
-            *p1-- = ',';
-        }
-        *p1-- = *p2--;
-    }
-    if( first ){
-        *p1-- = ',';
-        *p1-- = ',';
+
+    if( backup_versions <= 1 ) {
+        snprintf((char *)backupname, sizeof(backupname), "%s~", (char *)fn);
+    } else {
+        int vers[512];
+        int n = list_backup_versions((char *)fn, vers, 512);
+        int mx = 0, i;
+        for( i = 0; i < n; i++ ) if( vers[i] > mx ) mx = vers[i];
+        snprintf((char *)backupname, sizeof(backupname), "%s.~%d~",
+                 (char *)fn, mx + 1);
     }
     return TRUE;
 }
@@ -880,9 +945,13 @@ int writeout(BYTE *fn, int update)
             }
             chown((char *)fn, statbuf.st_uid,statbuf.st_gid);
         }
+
+        // trim numbered backups down to the newest backup_versions
+        if( auto_backup && backup_versions > 1 )
+            prune_backups( (char *)fn, backup_versions );
     }
 
-    // at this point, nfd is the file descriptor of the 
+    // at this point, nfd is the file descriptor of the
     // file to receive the new data.
 
     // if the buffer has a password, it's an encrypted file.

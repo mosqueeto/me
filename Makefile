@@ -86,7 +86,7 @@ songbird:	me
 	sudo cp me.1 /usr/share/man/man1/me.1
 
 clean:
-	rm -f *.o core ,,*
+	rm -f *.o core ,,* *~ *.~[0-9]*~
 
 backup:
 	mkdir .old >& /dev/null || true ; \

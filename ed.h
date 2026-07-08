@@ -236,6 +236,8 @@ extern void load_bytes_into_buffer(BUFFER *, BYTE *, long);
 #ifdef  ED_MAIN
 int dbug;
 int auto_backup;        // automatically create backup
+int backup_versions;    // how many backups to keep: 1 = single "foo~",
+                        // N>1 = numbered "foo.~k~", keep newest N
 int currow;             // Working cursor row
 int curcol;             // Working cursor column
 int rmarg;              // Current right fill column
@@ -265,6 +267,7 @@ int vi_mode;            // are we in vi mode?
 #else
 extern  int dbug;
 extern  int auto_backup;    // automatically create backup
+extern  int backup_versions; // # of backups to keep (1 = single "foo~")
 extern  int rmarg;          // Right margin
 extern  int lmarg;          // Left margin
 extern  int C_tabs;         // "C" mode tab setting

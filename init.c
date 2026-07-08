@@ -446,6 +446,11 @@ init_set(const char *var, const char *val)
     else if (strcmp(var, "lmarg")    == 0 || strcmp(var, "lm") == 0) lmarg    = ival;
     else if (strcmp(var, "tabsize")  == 0 || strcmp(var, "t")  == 0) tabsize  = ival;
     else if (strcmp(var, "softtabs") == 0 || strcmp(var, "T")  == 0) softtabs = ival;
+    else if (strcmp(var, "backups")  == 0 || strcmp(var, "bk") == 0) {
+        /* 0 disables backups; 1 = single "foo~"; N = keep N numbered "foo.~k~" */
+        if (ival <= 0) { auto_backup = 0; backup_versions = 1; }
+        else           { auto_backup = 1; backup_versions = ival; }
+    }
     /* unknown variables silently ignored */
 }
 
@@ -475,6 +480,8 @@ static const char readme_text[] =
 "        lmarg  (or lm)  left margin column         default 0\n"
 "        tabsize (or t)  tab display width           default 4\n"
 "        softtabs (or T) use spaces for tabs (1/0)  default 1\n"
+"        backups (or bk) backups to keep:           default 1\n"
+"                        0=off, 1=single foo~, N=numbered foo.~k~\n"
 "\n"
 "  bind KEYNAME built-in-name\n"
 "      Rebind a key to a built-in command, e.g.:\n"

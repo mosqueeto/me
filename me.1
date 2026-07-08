@@ -34,7 +34,7 @@ Enable mouse reporting (xterm-compatible terminals).
 .TP
 .B \-b
 Disable creation of
-.I ,,filename
+.I filename~
 backup files on save.
 .SH CONCEPTS
 .SS Point and Mark
@@ -502,11 +502,17 @@ Persisted keystroke macro (restored on next startup).
 .I ~/.me/macros/
 Directory of named keystroke macro files.
 .TP
-.I ,,filename
+.I filename~
 Backup copy of a file, created in the same directory as the original
-before the file is written.  Disable with the
+before the file is written (Emacs tilde convention).  With
+.I "set backups N"
+(N>1) in the init file, backups are instead kept as numbered versions
+.IR filename .~1~ ", " filename .~2~ ", \&..."
+and the newest N are retained.  Disable backups entirely with the
 .B \-b
-option.  If the backup cannot be created (e.g. the directory is not
+option or
+.IR "set backups 0" .
+If the backup cannot be created (e.g. the directory is not
 writable), a warning is shown but the file is saved anyway.
 .SH SEE ALSO
 .BR crypt (1),
