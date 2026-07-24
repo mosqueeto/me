@@ -139,3 +139,26 @@ init_set() (init.c).
 The autosave/recovery idea above (attach a tiny header to the backup and
 offer "recover?" on startup) is still open, and would layer cleanly on the
 new scheme -- a numbered backup plus a recovery marker is a natural fit.
+================================================================
+ME2.16: M-8 (asciify, random.c) only ever looked at one byte at a time,
+so it caught single-byte Windows-1252/Latin-1 characters but passed
+multi-byte UTF-8 sequences through untouched. Added a second table
+(mbmap) of UTF-8 byte sequences, checked ahead of the single-byte table
+whenever a UTF-8 lead byte (0xC2-0xF4) is seen; a match advances the
+scan by the sequence length instead of 1.
+
+Covers three sequences encountered in practice: em dash (U+2014,
+E2 80 94) -> "--", section sign (U+00A7, C2 A7) -> "S", and the object
+replacement character (U+FFFC, EF BF BC) -> deleted. The last one is
+what some apps (e.g. pasting a small inline icon/emoji-like object)
+leave behind when the object itself can't be represented as text.
+
+The two tables are independent lookups over the same byte stream, not
+a general UTF-8 decoder -- only the specific sequences in mbmap are
+recognized. Anything else with the high bit set still falls through to
+the single-byte table.
+================================================================
+ME2.17: added the UTF-8 forms of the punctuation asciify already handled
+as single CP1252 bytes: en dash (U+2013, E2 80 93) -> "-", and curly
+single/double quotes (U+2018/2019/201C/201D, E2 80 98/99/9C/9D) -> "'"
+and """. Same mbmap mechanism as ME2.16, no logic changes.

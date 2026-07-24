@@ -172,7 +172,10 @@ Delete blank lines around the point.
 .B M\-8
 Convert 8-bit characters to their nearest 7-bit ASCII equivalents.
 Covers Windows-1252 smart quotes, em dashes, ellipses, and Latin-1
-accented characters.  Reports the number of replacements made.
+accented characters, plus a handful of common multi-byte UTF-8
+sequences (en/em dash, curly single/double quotes, section sign;
+pasted-object placeholders are deleted).  Reports the number of
+replacements made.
 .SS Case Conversion
 .TP
 .B M\-u

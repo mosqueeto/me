@@ -789,7 +789,10 @@ int yank(int f, int n)
 /*
  * Convert 8-bit characters in the current buffer to 7-bit ASCII equivalents.
  * Table covers Windows-1252 (0x80-0x9F), Latin-1 punctuation (0xA0-0xBF),
- * and accented letters (0xC0-0xFF).  Bytes with no entry pass through unchanged.
+ * and accented letters (0xC0-0xFF).  A second table (mbmap) covers multi-byte
+ * UTF-8 sequences that have no single-byte Latin-1/CP1252 equivalent, e.g.
+ * the UTF-8 em dash (U+2014).  Bytes/sequences with no entry pass through
+ * unchanged.
  */
 int
 asciify(int f, int n)
@@ -834,13 +837,26 @@ asciify(int f, int n)
         [0xF9]="u",[0xFA]="u",[0xFB]="u",[0xFC]="u",
         [0xFD]="y",[0xFE]="th",[0xFF]="y",
     };
+    /* Multi-byte UTF-8 sequences with no single-byte Latin-1/CP1252
+     * equivalent.  Checked before the single-byte map above whenever a
+     * UTF-8 lead byte (0xC2-0xF4) is seen. */
+    static const struct { const char *seq; int len; const char *repl; } mbmap[] = {
+        { "\xe2\x80\x93", 3, "-"  }, /* U+2013 EN DASH */
+        { "\xe2\x80\x94", 3, "--" }, /* U+2014 EM DASH */
+        { "\xe2\x80\x98", 3, "'"  }, /* U+2018 LEFT SINGLE QUOTATION MARK */
+        { "\xe2\x80\x99", 3, "'"  }, /* U+2019 RIGHT SINGLE QUOTATION MARK */
+        { "\xe2\x80\x9c", 3, "\"" }, /* U+201C LEFT DOUBLE QUOTATION MARK */
+        { "\xe2\x80\x9d", 3, "\"" }, /* U+201D RIGHT DOUBLE QUOTATION MARK */
+        { "\xc2\xa7",     2, "S"  }, /* U+00A7 SECTION SIGN */
+        { "\xef\xbf\xbc", 3, ""   }, /* U+FFFC OBJECT REPLACEMENT CHARACTER */
+    };
 
     BUFFER *bp = curbp;
     LINE   *lp;
     BYTE   *out;
     long    outsz = 0, outcap = 8192;
     int     changes = 0;
-    int     i, rlen;
+    int     i, rlen, seqlen;
 
     (void)defaultargs(f, n);
 
@@ -851,9 +867,25 @@ asciify(int f, int n)
     }
 
     for (lp = lforw(bp->lines); lp != bp->lines; lp = lforw(lp)) {
-        for (i = 0; i < lp->used; i++) {
+        for (i = 0; i < lp->used; i += seqlen) {
             unsigned char  c    = (unsigned char)lp->text[i];
-            const char    *repl = map[c];
+            const char    *repl = NULL;
+
+            seqlen = 1;
+            if (c >= 0xC2) {
+                unsigned m;
+                for (m = 0; m < sizeof(mbmap) / sizeof(mbmap[0]); m++) {
+                    int L = mbmap[m].len;
+                    if (i + L <= lp->used &&
+                        memcmp(lp->text + i, mbmap[m].seq, L) == 0) {
+                        repl   = mbmap[m].repl;
+                        seqlen = L;
+                        break;
+                    }
+                }
+            }
+            if (!repl)
+                repl = map[c];
             rlen = repl ? (int)strlen(repl) : 1;
 
             if (outsz + rlen + 2 > outcap) {

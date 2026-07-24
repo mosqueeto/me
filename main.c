@@ -201,9 +201,17 @@ Version History:
         - backups use the Emacs tilde convention (foo~); "set backups N" keeps
           N numbered versions (foo.~k~); replaces the ",,filename" scheme
         - removed dead files f1.c, ofile.c, file.c.good
+2.16--  M-8 (asciify) now also recognizes a handful of multi-byte UTF-8
+        sequences with no single-byte Latin-1/CP1252 equivalent: em dash
+        (U+2014) and section sign (U+00A7) get ASCII replacements; the
+        object replacement character (U+FFFC, used by some apps as a
+        placeholder for a pasted image/icon) is deleted.
+2.17--  M-8 (asciify): added UTF-8 en dash (U+2013) and curly single/double
+        quotes (U+2018/2019/201C/201D) to the mbmap table, matching the
+        single-byte CP1252 equivalents already handled.
 */
 
-#define VERSION_NAME "ME2.15"
+#define VERSION_NAME "ME2.17"
 
 #include <stdio.h>
 #include <stdlib.h>
