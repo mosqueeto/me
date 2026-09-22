@@ -209,9 +209,15 @@ Version History:
 2.17--  M-8 (asciify): added UTF-8 en dash (U+2013) and curly single/double
         quotes (U+2018/2019/201C/201D) to the mbmap table, matching the
         single-byte CP1252 equivalents already handled.
+2.18--  arrow keys now also recognized in application cursor-key mode
+        (ESC O A/B/C/D, sent when the terminal has DECCKM set), not just
+        normal mode (ESC [ A/B/C/D). Previously an unrecognized ESC O
+        follow byte fell through to self-insert, inserting a stray 'O'
+        for every arrow keypress -- reproducible whenever the terminal
+        (or a stuck tmux/shell session) is left in application mode.
 */
 
-#define VERSION_NAME "ME2.17"
+#define VERSION_NAME "ME2.18"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -850,12 +856,16 @@ int execute(int c, int f, int n)
     //  f5: ^[[15~   f6: ^[[17~   f7: ^[[18~    f8: ^[[19~
     //  f9: ^[[20~   f10: ^[[21~  f11: ^[[23~   f12: ^[[24~
 
-    if( c == (META|'O') ) { // F1 - F4
+    if( c == (META|'O') ) { // F1 - F4, or arrows in application cursor-key mode
         c1 = getkey();
         if( c1 == 'P' ) { return key_f1(f,n); } // F1
         if( c1 == 'Q' ) { return key_f2(f,n); } // F2
         if( c1 == 'R' ) { return key_f3(f,n); } // F3
         if( c1 == 'S' ) { return key_f4(f,n); } // F4
+        if( c1 == 'A' ) { return backline(f,n); } // up
+        if( c1 == 'B' ) { return forwline(f,n); } // down
+        if( c1 == 'C' ) { return forwchar(f,n); } // right
+        if( c1 == 'D' ) { return backchar(f,n); } // left
     }
     if( c == (META|'[') ) {
         c1 = getkey();
